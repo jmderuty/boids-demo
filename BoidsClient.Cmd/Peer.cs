@@ -66,6 +66,7 @@ namespace BoidsClient.Cmd
                         writer.Write(_simulation.Boid.Rot);
                     }
                     scene.SendPacket("position.update", s => s.Write(buffer, 0, 14), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                    _simulation.Step();
                 }
                 await Task.Delay(100);
             }

@@ -20,22 +20,26 @@ namespace BoidsClient
         public float Y { get; private set; }
         public float Rot { get; private set; }
         //Vitesse max (m/s);
-        private float speed = 5;
+        private float speed = 15;
         //Vitesse de rotation max (rad/s)
-        private float drMax = (float)Math.PI;
+        private float drMax = (float)Math.PI/32;
         private float dr;
 
-        private float space = 5;
+        private float space =10;
 
         private float Distance(Ship ship)
         {
-            return (X - ship.X) * (X - ship.X) + (Y - ship.Y) * (Y - ship.Y);
+            return Distance(ship.X, ship.Y);
+        }
+        private float Distance(float x,float y)
+        {
+            return (X - x) * (X - x) + (Y - y) * (Y - y);
         }
         private void Flock(IEnumerable<Ship> ships)
         {
             float dX = 0;
             float dY = 0;
-            foreach (var ship in ships)
+            foreach (var ship in ships.ToArray())
             {
                 float distance = Distance(ship);
 
@@ -54,10 +58,24 @@ namespace BoidsClient
                 }
 
             }
-
+            var centerDistance = Distance(0, 0);
+            if(Distance(0,0) > 50*50)
+            {
+                dX += -X;
+                dY += -Y ;
+            }
             var tr = Math.Atan2(dY, dX);
-            dr = (float)(tr - Rot);
 
+            dr = (float)(tr - Rot);
+            if(dr < -Math.PI)
+            {
+                dr += 2 * (float)Math.PI;
+            }
+            if(dr > Math.PI)
+            {
+                dr -= 2 * (float)Math.PI;
+            }
+            dr *= 0.1f;
 
         }
 

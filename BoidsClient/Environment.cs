@@ -12,7 +12,7 @@ namespace BoidsClient
         {
             VisibleShips = new Dictionary<ushort, Ship>();
         }
-      
+
         public Dictionary<ushort, Ship> VisibleShips { get; private set; }
 
 
@@ -29,12 +29,14 @@ namespace BoidsClient
         public void UpdateShipLocation(ushort id, float x, float y, float rot)
         {
             Ship ship;
-            if(VisibleShips.TryGetValue(id,out ship))
+            if (!VisibleShips.TryGetValue(id, out ship))
             {
-                ship.X = x;
-                ship.Y = y;
-                ship.Rot = rot;
+                ship = new Ship { Id = id };
+                VisibleShips.Add(id, ship);
             }
+            ship.X = x;
+            ship.Y = y;
+            ship.Rot = rot;
         }
     }
 }

@@ -68,7 +68,8 @@ namespace Server
                 {
                     var current = DateTime.UtcNow;
 
-                    _scene.Broadcast("position.update", s => {
+                    _scene.Broadcast("position.update", s =>
+                    {
                         foreach (var ship in _ships.Values.ToArray())
                         {
                             if (ship.PositionUpdatedOn > lastRun)
@@ -79,13 +80,13 @@ namespace Server
                     }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
 
                     lastRun = current;
-                    if(DateTime.UtcNow > lastLog+TimeSpan.FromMinutes(1))
+                    if (DateTime.UtcNow > lastLog + TimeSpan.FromMinutes(1))
                     {
                         lastLog = DateTime.UtcNow;
                         _scene.GetComponent<ILogger>().Info("gameScene", "running update loop");
                     }
                     await Task.Delay(current + interval - DateTime.UtcNow);
-                    
+
                 }
             }
         }
@@ -126,12 +127,12 @@ namespace Server
             var player = new Player(pInfos, client.Id);
 
             _players.AddOrUpdate(client.Id, player, (id, old) => player);
-
-            var ship = CreateShip(player);
-
-            _ships.AddOrUpdate(ship.id, ship, (id, old) => ship);
             if (!player.IsObserver)
             {
+                var ship = CreateShip(player);
+
+                _ships.AddOrUpdate(ship.id, ship, (id, old) => ship);
+
                 var dto = new ShipCreatedDto { id = ship.id, x = ship.x, y = ship.y, rot = ship.rot };
                 client.Send("ship.me", s => client.Serializer().Serialize(dto, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 

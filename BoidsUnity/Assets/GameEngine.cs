@@ -150,7 +150,7 @@ public class GameEngine : MonoBehaviour
     private class Ship
     {
         public ushort Id { get; set; }
-        public float TargetX { get; set; }
+        public Vector3 Target { get; set; }
         public float TargetY { get; set; }
         public float LastX { get; set; }
         public float LastY { get; set; }

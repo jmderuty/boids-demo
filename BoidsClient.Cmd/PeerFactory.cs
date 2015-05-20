@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace BoidsClient.Cmd
 {
 
-    class PeerFactory : MarshalByRefObject
+    public class PeerProxy : MarshalByRefObject
     {
         private  Peer _peer;
         public void Start(string name)

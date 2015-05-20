@@ -19,7 +19,7 @@ namespace BoidsClient.Cmd
             {
                 var name = "peer-" + i;
                 var domain = AppDomain.CreateDomain(name);
-                var proxy = (PeerFactory)domain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, "BoidsClient.Cmd.PeerFactory");
+                var proxy = (PeerProxy)domain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, "BoidsClient.Cmd.PeerFactory");
 
                 proxy.Start(name);
                 Thread.Sleep(1000);

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ServiceConfiguration serviceName="BoidsCloudClient" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceConfiguration" osFamily="4" osVersion="*" schemaVersion="2015-04.2.6">
+  <Role name="BoidsClient.Worker">
+    <Instances count="1" />
+    <ConfigurationSettings>
+      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="DefaultEndpointsProtocol=https;AccountName=yoni;AccountKey=Wtwttst8riPwJYZTJOXhwwqmIFQDj+lycDQXZU2box2orTy4xgfiUN+N5fdu268Sb9VPwuxekoTTX/zqYGqilA==" />
+      <Setting name="ConfigStorage" value="DefaultEndpointsProtocol=https;AccountName=yoni;AccountKey=Wtwttst8riPwJYZTJOXhwwqmIFQDj+lycDQXZU2box2orTy4xgfiUN+N5fdu268Sb9VPwuxekoTTX/zqYGqilA==" />
+    </ConfigurationSettings>
+  </Role>
+</ServiceConfiguration>

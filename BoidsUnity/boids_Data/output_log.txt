@@ -18,7 +18,7 @@ Platform assembly: C:\Users\Shyntae\Source\Repos\Boids\BoidsUnity\boids_Data\Man
 Loading C:\Users\Shyntae\Source\Repos\Boids\BoidsUnity\boids_Data\Managed\Raknet.csharp.dll into Unity Child Domain
 Platform assembly: C:\Users\Shyntae\Source\Repos\Boids\BoidsUnity\boids_Data\Managed\System.Threading.dll (this message is harmless)
 Loading C:\Users\Shyntae\Source\Repos\Boids\BoidsUnity\boids_Data\Managed\System.Threading.dll into Unity Child Domain
-- Completed reload, in  0.107 seconds
+- Completed reload, in  0.129 seconds
 desktop: 2560x1600 60Hz; virtual: 2560x1600 at 0,0
 <RI> Initializing input.
 <RI> Input initialized.
@@ -26,3 +26,23 @@ desktop: 2560x1600 60Hz; virtual: 2560x1600 at 0,0
 Platform assembly: C:\Users\Shyntae\Source\Repos\Boids\BoidsUnity\boids_Data\Managed\System.Core.dll (this message is harmless)
 Platform assembly: C:\Users\Shyntae\Source\Repos\Boids\BoidsUnity\boids_Data\Managed\System.dll (this message is harmless)
 Platform assembly: C:\Users\Shyntae\Source\Repos\Boids\BoidsUnity\boids_Data\Managed\Mono.Security.dll (this message is harmless)
+Ship 236 added 
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebug.gen.cpp Line: 56)
+
+Ship 237 added 
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebug.gen.cpp Line: 56)
+
+Ship 238 added 
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebug.gen.cpp Line: 56)
+
+Ship 239 added 
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebug.gen.cpp Line: 56)
+
+Ship 240 added 
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebug.gen.cpp Line: 56)
+

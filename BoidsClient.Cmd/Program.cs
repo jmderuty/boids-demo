@@ -8,24 +8,36 @@ using System.Threading.Tasks;
 
 namespace BoidsClient.Cmd
 {
-    class Program
+    class Program: MarshalByRefObject
     {
 
         static void Main(string[] args)
         {
-            var nbBoids = 16;
-
-            for (int i = 0; i < nbBoids; i++)
+            try
             {
-                var name = "peer-" + i;
-                var domain = AppDomain.CreateDomain(name);
-                var proxy = (PeerProxy)domain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, "BoidsClient.Cmd.PeerFactory");
+                var nbBoids = 5;
+               
+                for (int i = 0; i < nbBoids; i++)
+                {
+                    var name = "peer-" + i;
+                    var domain = AppDomain.CreateDomain(name);
+                    domain.UnhandledException += Domain_UnhandledException;
+                    var proxy = (PeerProxy)domain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, typeof(PeerProxy).FullName);
+                    //var proxy = new PeerProxy();
+                    proxy.Start(name);
+                    Thread.Sleep(1000);
+                }
 
-                proxy.Start(name);
-                Thread.Sleep(1000);
+                Console.Read();
             }
+            catch (Exception ex)
+            {
+            }
+        }
 
-            Console.Read();
+        private static void Domain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Console.WriteLine(e.ExceptionObject.ToString());
         }
     }
 }

@@ -62,15 +62,19 @@ public class GameEngine : MonoBehaviour
             }
             else if (ship.Obj == null)
             {
-                ship.Obj = (GameObject)Instantiate(ShipPrefab, new Vector3(ship.TargetX, ship.TargetY),  Quaternion.Euler(0, 0, ship.TargetRot * (180 / (float)Math.PI)));
+                ship.Obj = (GameObject)Instantiate(ShipPrefab,ship.Target,  ship.TargetRot);
             }
             else
             {
                 var ratio = (DateTime.UtcNow - ship.LastDate).TotalMilliseconds / (ship.TargetDate - ship.LastDate).TotalMilliseconds;
 
-                var position = Vector3.Lerp(new Vector3(ship.LastX, ship.LastY), new Vector3(ship.TargetX, ship.TargetY), (float)ratio);
+                var position = Vector3.Lerp(ship.Last, ship.Target, (float)ratio);
+                var rotation = Quaternion.Lerp(ship.LastRot, ship.TargetRot, (float)ratio);
+
+                ship.Current = position;
+                ship.CurrentRot = rotation;
                 ship.Obj.transform.position = position;
-                var rotation = Quaternion.Lerp(Quaternion.Euler(0, 0, ship.LastRot * (180 / (float)Math.PI)), Quaternion.Euler(0, 0, ship.TargetRot * (180 / (float)Math.PI)), (float)ratio);
+                
                 ship.Obj.transform.rotation = rotation;
             }
         }
@@ -89,8 +93,8 @@ public class GameEngine : MonoBehaviour
     {
 
         var shipInfos = obj.ReadObject<ShipCreatedDto>();
-
-        var ship = new Ship { Id = shipInfos.id, TargetX = shipInfos.x, LastX = shipInfos.x, LastY = shipInfos.y, TargetY = shipInfos.y, TargetRot = shipInfos.rot, TargetDate = DateTime.UtcNow };
+        var rot = Quaternion.Euler(0, 0, shipInfos.rot * (180 / (float)Math.PI));
+        var ship = new Ship { Id = shipInfos.id, LastRot = rot, TargetRot = rot, Target = new Vector3(shipInfos.x, shipInfos.y), Last = new Vector3(shipInfos.x, shipInfos.y), TargetDate = DateTime.UtcNow };
         UnityEngine.Debug.Log(string.Format("Ship {0} added ", shipInfos.id));
 
         _gameObjects.Add(ship.Id, ship);
@@ -130,15 +134,15 @@ public class GameEngine : MonoBehaviour
                     ship = new Ship { Id = id };
                     _gameObjects.Add(id, ship);
                 }
-                ship.LastX = ship.TargetX;
-                ship.LastY = ship.TargetY;
-                ship.LastRot = ship.TargetRot;
-                ship.LastDate = ship.TargetDate;
+                ship.Last = ship.Current;
+                ship.LastDate = DateTime.UtcNow;
+                ship.LastRot = ship.CurrentRot;
+                
 
-                ship.TargetX = x;
-                ship.TargetY = y;
-                ship.TargetRot = rot;
-                ship.TargetDate = DateTime.UtcNow + TimeSpan.FromMilliseconds(100);
+                ship.Target = new Vector3(x,y);
+               
+                ship.TargetRot = Quaternion.Euler(0, 0, rot * (180 / (float)Math.PI));
+                ship.TargetDate = DateTime.UtcNow + TimeSpan.FromMilliseconds(200);
                 
 
             }
@@ -151,17 +155,22 @@ public class GameEngine : MonoBehaviour
     {
         public ushort Id { get; set; }
         public Vector3 Target { get; set; }
-        public float TargetY { get; set; }
-        public float LastX { get; set; }
-        public float LastY { get; set; }
+        public Vector3 Last { get; set; }
+
+        public Vector3 Current { get; set; }
+
+        public Quaternion LastRot { get; set; }
+        public Quaternion CurrentRot { get; set; }
+
+        public Quaternion TargetRot { get; set; }
+       
 
         public DateTime TargetDate { get; set; }
         public DateTime LastDate { get; set; }
-        public float TargetRot { get; set; }
-
+       
         public GameObject Obj { get; set; }
         public bool Deletable { get; internal set; }
-        public float LastRot { get; internal set; }
+      
     }
 }
 

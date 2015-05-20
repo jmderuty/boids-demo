@@ -9,11 +9,21 @@ namespace BoidsClient.Cmd
 
     public class PeerProxy : MarshalByRefObject
     {
-        private  Peer _peer;
+        private Peer _peer;
         public void Start(string name)
         {
-            _peer = new Peer(name);
-            _peer.Start();
+            try
+            {
+                _peer = new Peer(name);
+
+                _peer.Start();
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                throw;
+            }
+
 
         }
 

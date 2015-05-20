@@ -5,6 +5,14 @@
     <ConfigurationSettings>
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="DefaultEndpointsProtocol=https;AccountName=yoni;AccountKey=Wtwttst8riPwJYZTJOXhwwqmIFQDj+lycDQXZU2box2orTy4xgfiUN+N5fdu268Sb9VPwuxekoTTX/zqYGqilA==" />
       <Setting name="ConfigStorage" value="DefaultEndpointsProtocol=https;AccountName=yoni;AccountKey=Wtwttst8riPwJYZTJOXhwwqmIFQDj+lycDQXZU2box2orTy4xgfiUN+N5fdu268Sb9VPwuxekoTTX/zqYGqilA==" />
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.Enabled" value="true" />
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.AccountUsername" value="Eilistraee" />
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.AccountEncryptedPassword" value="MIIBlQYJKoZIhvcNAQcDoIIBhjCCAYICAQAxggFOMIIBSgIBADAyMB4xHDAaBgNVBAMME1dpbmRvd3MgQXp1cmUgVG9vbHMCEECLNSVmkcelSdXZDHtUyIUwDQYJKoZIhvcNAQEBBQAEggEArn672lVpVzf3aNdvWASCDVmYWdW5WPIb0NFs3fwUTqdYpXm+THFsVVZnWSuVOnz4Ts4tMxZeE8f3nUVCkrXPFzY9XL/0jCvylINc1kWYXrX1v2zu1xTam229b5UbOzauXRI3estR2QkjJugSpb0sLGCVa3hRD0ej3/Bs68b1J0pv1cI8RHHU4rYnq8+PAOE9h1awNoqbmUwJQD3cMdQHllsI+vlp3Bf3InUH5csKU7wLdq31tj6Qr63XFXbLJrUxzt48cTidKy3TfjOGNC4e3ipVna6iT45vHftZUZFduYPa/Rok/IpkJRLFfs1dqBdkrgjHQXcDXjraKCRNWgdMSDArBgkqhkiG9w0BBwEwFAYIKoZIhvcNAwcECKMLcegMiWeQgAh9qS16zdQmdw==" />
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.AccountExpiration" value="2016-05-20T23:59:59.0000000+02:00" />
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteForwarder.Enabled" value="true" />
     </ConfigurationSettings>
+    <Certificates>
+      <Certificate name="Microsoft.WindowsAzure.Plugins.RemoteAccess.PasswordEncryption" thumbprint="8BF5D14C6C6F9CE78C2D52EE78F47043CBD2300B" thumbprintAlgorithm="sha1" />
+    </Certificates>
   </Role>
 </ServiceConfiguration>

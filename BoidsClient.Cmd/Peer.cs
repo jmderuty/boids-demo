@@ -44,15 +44,17 @@ namespace BoidsClient.Cmd
             var config = Stormancer.ClientConfiguration.ForAccount("d81fc876-6094-3d92-a3d0-86d42d866b96", "boids-demo");
             //config.Logger = new Logger();
             var client = new Stormancer.Client(config);
+            Console.WriteLine("start");
 
             var scene = await client.GetPublicScene("main-session", new PlayersInfos { isObserver = false });
-
+            Console.WriteLine("retrieved scene");
             scene.AddRoute("position.update", OnPositionUpdate);
             scene.AddRoute("ship.remove", OnShipRemoved);
             scene.AddRoute("ship.add", OnShipAdded);
             scene.AddRoute("ship.me", OnGetMyShipInfos);
 
             await scene.Connect();
+            Console.WriteLine("connected");
             var buffer = new byte[14];
             while (_isRunning)
             {
@@ -68,7 +70,7 @@ namespace BoidsClient.Cmd
                     scene.SendPacket("position.update", s => s.Write(buffer, 0, 14), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                     _simulation.Step();
                 }
-                await Task.Delay(100);
+                await Task.Delay(200);
             }
 
         }

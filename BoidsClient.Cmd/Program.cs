@@ -15,7 +15,7 @@ namespace BoidsClient.Cmd
         {
             try
             {
-                var nbBoids = 5;
+                var nbBoids = int.Parse(args[0]);
                
                 for (int i = 0; i < nbBoids; i++)
                 {

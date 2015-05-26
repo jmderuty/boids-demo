@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Stormancer.Core;
+﻿using Server;
 using Stormancer;
-using Server;
-using System.IO;
+using Stormancer.Core;
 using Stormancer.Diagnostics;
+using System;
+using System.Configuration;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace BoidsClient.Cmd
 {
@@ -41,12 +39,16 @@ namespace BoidsClient.Cmd
         }
         private async Task RunImpl()
         {
-            var config = Stormancer.ClientConfiguration.ForAccount("d81fc876-6094-3d92-a3d0-86d42d866b96", "boids-demo");
+            var accountId = ConfigurationManager.AppSettings["accountId"];
+            var applicationName = ConfigurationManager.AppSettings["applicationName"];
+            var sceneName = ConfigurationManager.AppSettings["sceneName"];
+
+            var config = Stormancer.ClientConfiguration.ForAccount(accountId, applicationName);
             //config.Logger = new Logger();
             var client = new Stormancer.Client(config);
             Console.WriteLine("start");
 
-            var scene = await client.GetPublicScene("main-session", new PlayersInfos { isObserver = false });
+            var scene = await client.GetPublicScene(sceneName, new PlayersInfos { isObserver = false });
             Console.WriteLine("retrieved scene");
             scene.AddRoute("position.update", OnPositionUpdate);
             scene.AddRoute("ship.remove", OnShipRemoved);

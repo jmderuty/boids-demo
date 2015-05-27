@@ -17,9 +17,9 @@ namespace Server
             builder.SceneTemplate("game", scene => new GameScene(scene));
         }
     }
+
     class GameScene
     {
-
         private const float X_MIN = -100;
         private const float X_MAX = 100;
         private const float Y_MIN = -100;
@@ -57,17 +57,19 @@ namespace Server
                 Task.Run(RunUpdate);
             }
         }
+
         private async Task RunUpdate()
         {
             var lastRun = DateTime.MinValue;
             _scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
             var lastLog = DateTime.MinValue;
+
             while (isRunning)
             {
-                if (DateTime.UtcNow > lastRun + interval && _scene.RemotePeers.Any())
-                {
-                    var current = DateTime.UtcNow;
+                var current = DateTime.UtcNow;
 
+                if (current > lastRun + interval && _scene.RemotePeers.Any())
+                {
                     _scene.Broadcast("position.update", s =>
                     {
                         foreach (var ship in _ships.Values.ToArray())
@@ -80,13 +82,13 @@ namespace Server
                     }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
 
                     lastRun = current;
-                    if (DateTime.UtcNow > lastLog + TimeSpan.FromMinutes(1))
+                    if (current > lastLog + TimeSpan.FromMinutes(1))
                     {
-                        lastLog = DateTime.UtcNow;
+                        lastLog = current;
                         _scene.GetComponent<ILogger>().Info("gameScene", "running update loop");
                     }
-                    await Task.Delay(current + interval - DateTime.UtcNow);
 
+                    await Task.Delay(current + interval - DateTime.UtcNow);
                 }
             }
         }
@@ -141,8 +143,7 @@ namespace Server
             _scene.GetComponent<ILogger>().Info("gameScene", "Added ship");
             StartUpdateLoop();
         }
-
-
+        
         private Random _rand = new Random();
 
         private Ship CreateShip(Player player)

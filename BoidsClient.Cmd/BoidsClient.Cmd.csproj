@@ -50,7 +50,11 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Stormancer.Core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Stormancer.Client45.x64.1.0.1.2\lib\Net45\Stormancer.Core.dll</HintPath>
+      <HintPath>..\packages\Stormancer.Server.1.0.1.0\lib\Net45\Stormancer.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Stormancer.Server, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Stormancer.Server.1.0.1.0\lib\Net45\Stormancer.Server.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -84,6 +88,7 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+    <None Include="_app.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BoidsClient\BoidsClient.csproj">

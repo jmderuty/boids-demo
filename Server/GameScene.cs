@@ -32,7 +32,7 @@ namespace Server
 
         private bool isRunning = false;
 
-        private TimeSpan interval = TimeSpan.FromMilliseconds(100);
+        private TimeSpan interval = TimeSpan.FromMilliseconds(50);
         public GameScene(ISceneHost scene)
         {
             _scene = scene;

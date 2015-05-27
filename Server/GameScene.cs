@@ -70,16 +70,19 @@ namespace Server
 
                 if (current > lastRun + interval && _scene.RemotePeers.Any())
                 {
-                    _scene.Broadcast("position.update", s =>
+                    if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
                     {
-                        foreach (var ship in _ships.Values.ToArray())
+                        _scene.Broadcast("position.update", s =>
                         {
-                            if (ship.PositionUpdatedOn > lastRun)
+                            foreach (var ship in _ships.Values.ToArray())
                             {
-                                s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
+                                if (ship.PositionUpdatedOn > lastRun)
+                                {
+                                    s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
+                                }
                             }
-                        }
-                    }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                    }
 
                     lastRun = current;
                     if (current > lastLog + TimeSpan.FromMinutes(1))
@@ -143,7 +146,7 @@ namespace Server
             _scene.GetComponent<ILogger>().Info("gameScene", "Added ship");
             StartUpdateLoop();
         }
-        
+
         private Random _rand = new Random();
 
         private Ship CreateShip(Player player)

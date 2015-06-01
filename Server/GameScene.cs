@@ -145,6 +145,8 @@ namespace Server
 
                 foreach (var group in peersBySerializer)
                 {
+                    _scene.GetComponent<ILogger>().Trace("gamescene.onconnected", "sending data to route ship.add for serializer {0}", group.Key);
+                    _scene.GetComponent<ILogger>().Trace("gamescene.onconnected", "serializer effectively used: {0}", group.First().Serializer().Name);
                     _scene.Send(new MatchArrayFilter(group), "ship.add", s =>
                         {
                             group.First().Serializer().Serialize(dto, s);

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Stormancer.Core;
 using System.Collections.Concurrent;
 using Stormancer.Diagnostics;
+using System.Diagnostics;
 
 namespace Server
 {
@@ -33,6 +34,9 @@ namespace Server
         private bool isRunning = false;
 
         private TimeSpan interval = TimeSpan.FromMilliseconds(200);
+
+        Stopwatch stopWatch = new Stopwatch();
+
         public GameScene(ISceneHost scene)
         {
             _scene = scene;
@@ -63,6 +67,7 @@ namespace Server
             var lastRun = DateTime.MinValue;
             _scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
             var lastLog = DateTime.MinValue;
+            stopWatch.Start();
 
             while (isRunning)
             {
@@ -94,12 +99,15 @@ namespace Server
                     await Task.Delay(current + interval - DateTime.UtcNow);
                 }
             }
+
+            stopWatch.Stop();
         }
 
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
         {
-            var bytes = new byte[14];
+            var bytes = new byte[22];
             packet.Stream.Read(bytes, 0, 14);
+
             var shipId = BitConverter.ToUInt16(bytes, 0);
             Ship ship;
             if (_ships.TryGetValue(shipId, out ship))
@@ -108,7 +116,11 @@ namespace Server
                 ship.LastPositionRaw = bytes;
             }
 
-
+            byte[] time = BitConverter.GetBytes((uint)stopWatch.ElapsedMilliseconds);
+            for (var i = 0; i < 8; i++)
+            {
+                bytes[18 + i] = time[i];
+            }
         }
 
         private async Task OnDisconnected(DisconnectedArgs arg)
@@ -145,8 +157,6 @@ namespace Server
 
                 foreach (var group in peersBySerializer)
                 {
-                    _scene.GetComponent<ILogger>().Trace("gamescene.onconnected", "sending data to route ship.add for serializer {0}", group.Key);
-                    _scene.GetComponent<ILogger>().Trace("gamescene.onconnected", "serializer effectively used: {0}", group.First().Serializer().Name);
                     _scene.Send(new MatchArrayFilter(group), "ship.add", s =>
                         {
                             group.First().Serializer().Serialize(dto, s);

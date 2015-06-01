@@ -22,16 +22,16 @@ namespace BoidsClient
         //Vitesse max (m/s);
         private float speed = 15;
         //Vitesse de rotation max (rad/s)
-        private float drMax = (float)Math.PI/32;
+        private float drMax = (float)Math.PI / 32;
         private float dr;
 
-        private float space =10;
+        private float space = 10;
 
         private float Distance(Ship ship)
         {
             return Distance(ship.X, ship.Y);
         }
-        private float Distance(float x,float y)
+        private float Distance(float x, float y)
         {
             return (X - x) * (X - x) + (Y - y) * (Y - y);
         }
@@ -59,19 +59,18 @@ namespace BoidsClient
 
             }
             var centerDistance = Distance(0, 0);
-            if(Distance(0,0) > 50*50)
-            {
-                dX += -X;
-                dY += -Y ;
-            }
+
+            dX += -X * Math.Abs(X) * 0.05f;
+            dY += -Y * Math.Abs(Y) * 0.05f;
+
             var tr = Math.Atan2(dY, dX);
 
             dr = (float)(tr - Rot);
-            if(dr < -Math.PI)
+            if (dr < -Math.PI)
             {
                 dr += 2 * (float)Math.PI;
             }
-            if(dr > Math.PI)
+            if (dr > Math.PI)
             {
                 dr -= 2 * (float)Math.PI;
             }

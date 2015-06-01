@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Stormancer.Core;
 using System.Collections.Concurrent;
 using Stormancer.Diagnostics;
+using System.Diagnostics;
 
 namespace Server
 {
@@ -17,9 +18,9 @@ namespace Server
             builder.SceneTemplate("game", scene => new GameScene(scene));
         }
     }
+
     class GameScene
     {
-
         private const float X_MIN = -100;
         private const float X_MAX = 100;
         private const float Y_MIN = -100;
@@ -32,7 +33,10 @@ namespace Server
 
         private bool isRunning = false;
 
-        private TimeSpan interval = TimeSpan.FromMilliseconds(50);
+        private TimeSpan interval = TimeSpan.FromMilliseconds(200);
+
+        Stopwatch stopWatch = new Stopwatch();
+
         public GameScene(ISceneHost scene)
         {
             _scene = scene;
@@ -57,44 +61,53 @@ namespace Server
                 Task.Run(RunUpdate);
             }
         }
+
         private async Task RunUpdate()
         {
             var lastRun = DateTime.MinValue;
             _scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
             var lastLog = DateTime.MinValue;
+            stopWatch.Start();
+
             while (isRunning)
             {
-                if (DateTime.UtcNow > lastRun + interval && _scene.RemotePeers.Any())
-                {
-                    var current = DateTime.UtcNow;
+                var current = DateTime.UtcNow;
 
-                    _scene.Broadcast("position.update", s =>
+                if (current > lastRun + interval && _scene.RemotePeers.Any())
+                {
+                    if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
                     {
-                        foreach (var ship in _ships.Values.ToArray())
+                        _scene.Broadcast("position.update", s =>
                         {
-                            if (ship.PositionUpdatedOn > lastRun)
+                            foreach (var ship in _ships.Values.ToArray())
                             {
-                                s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
+                                if (ship.PositionUpdatedOn > lastRun)
+                                {
+                                    s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
+                                }
                             }
-                        }
-                    }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                    }
 
                     lastRun = current;
-                    if (DateTime.UtcNow > lastLog + TimeSpan.FromMinutes(1))
+                    if (current > lastLog + TimeSpan.FromMinutes(1))
                     {
-                        lastLog = DateTime.UtcNow;
+                        lastLog = current;
                         _scene.GetComponent<ILogger>().Info("gameScene", "running update loop");
                     }
-                    await Task.Delay(current + interval - DateTime.UtcNow);
 
+                    await Task.Delay(current + interval - DateTime.UtcNow);
                 }
             }
+
+            stopWatch.Stop();
         }
 
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
         {
-            var bytes = new byte[14];
+            var bytes = new byte[18];
             packet.Stream.Read(bytes, 0, 14);
+
             var shipId = BitConverter.ToUInt16(bytes, 0);
             Ship ship;
             if (_ships.TryGetValue(shipId, out ship))
@@ -102,8 +115,12 @@ namespace Server
                 ship.PositionUpdatedOn = DateTime.UtcNow;
                 ship.LastPositionRaw = bytes;
             }
-
-
+            
+            byte[] time = BitConverter.GetBytes((uint)stopWatch.ElapsedMilliseconds);
+            for (var i = 0; i < sizeof(uint); i++)
+            {
+                bytes[14 + i] = time[i];
+            }
         }
 
         private async Task OnDisconnected(DisconnectedArgs arg)
@@ -136,12 +153,19 @@ namespace Server
                 var dto = new ShipCreatedDto { id = ship.id, x = ship.x, y = ship.y, rot = ship.rot };
                 client.Send("ship.me", s => client.Serializer().Serialize(dto, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 
-                _scene.Broadcast("ship.add", s => client.Serializer().Serialize(dto, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                var peersBySerializer = _scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
+
+                foreach (var group in peersBySerializer)
+                {
+                    _scene.Send(new MatchArrayFilter(group), "ship.add", s =>
+                        {
+                            group.First().Serializer().Serialize(dto, s);
+                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                }
             }
             _scene.GetComponent<ILogger>().Info("gameScene", "Added ship");
             StartUpdateLoop();
         }
-
 
         private Random _rand = new Random();
 

@@ -40,20 +40,13 @@
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Raknet.csharp, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Stormancer.Client45.x64.1.0.1.2\lib\Net45\Raknet.csharp.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Stormancer.Client45, Version=1.0.1.2, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>..\packages\Stormancer.Client45.x64.1.0.1.2\lib\Net45\Stormancer.Client45.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Stormancer.Core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Stormancer.Client45.x64.1.0.1.2\lib\Net45\Stormancer.Core.dll</HintPath>
+      <HintPath>..\packages\Stormancer.Server.1.0.1.0\lib\Net45\Stormancer.Core.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Stormancer.Server">
-      <HintPath>..\packages\Stormancer.Server.1.0.0.0\lib\Net45\Stormancer.Server.dll</HintPath>
+    <Reference Include="Stormancer.Server, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Stormancer.Server.1.0.1.0\lib\Net45\Stormancer.Server.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -87,17 +80,7 @@
     <None Include="packages.config" />
     <None Include="_app.json" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="x64\Raknet.dll" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\packages\Stormancer.Client45.x64.1.0.1.2\build\Stormancer.Client45.x64.targets" Condition="Exists('..\packages\Stormancer.Client45.x64.1.0.1.2\build\Stormancer.Client45.x64.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Stormancer.Client45.x64.1.0.1.2\build\Stormancer.Client45.x64.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Stormancer.Client45.x64.1.0.1.2\build\Stormancer.Client45.x64.targets'))" />
-  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

@@ -105,7 +105,7 @@ namespace Server
 
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
         {
-            var bytes = new byte[22];
+            var bytes = new byte[18];
             packet.Stream.Read(bytes, 0, 14);
 
             var shipId = BitConverter.ToUInt16(bytes, 0);
@@ -115,11 +115,11 @@ namespace Server
                 ship.PositionUpdatedOn = DateTime.UtcNow;
                 ship.LastPositionRaw = bytes;
             }
-
+            
             byte[] time = BitConverter.GetBytes((uint)stopWatch.ElapsedMilliseconds);
-            for (var i = 0; i < 8; i++)
+            for (var i = 0; i < sizeof(uint); i++)
             {
-                bytes[18 + i] = time[i];
+                bytes[14 + i] = time[i];
             }
         }
 

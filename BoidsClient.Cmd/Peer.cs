@@ -74,7 +74,6 @@ namespace BoidsClient.Cmd
                 }
                 await Task.Delay(200);
             }
-
         }
 
         private void OnGetMyShipInfos(Packet<IScenePeer> obj)
@@ -122,6 +121,7 @@ namespace BoidsClient.Cmd
                         var x = reader.ReadSingle();
                         var y = reader.ReadSingle();
                         var rot = reader.ReadSingle();
+                        var time = reader.ReadUInt32();
                         if (id != this.id)
                         {
                             _simulation.Environment.UpdateShipLocation(id, x, y, rot);

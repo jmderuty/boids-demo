@@ -107,7 +107,13 @@ namespace Server
                             });
                             metrics.Clear();
                         }
-                        var delay = current + interval - DateTime.UtcNow;
+                        var execution = DateTime.UtcNow - current;                        
+                        if(execution > this._longestExecution)
+                        {
+                            this._longestExecution = execution;
+                        }
+
+                        var delay = interval - execution;
                         if (delay > TimeSpan.Zero)
                         {
                             await Task.Delay(delay);
@@ -130,6 +136,7 @@ namespace Server
             public int[] Percentiles = new int[11];
             public int Percentile99;
             public int LostPackets;
+            public TimeSpan LongestExecution;
         }
 
         public ReceivedDataMetrics ComputeMetrics()
@@ -160,6 +167,8 @@ namespace Server
                 result.Percentile99 = intervals[99 * (result.NbSamples - 1) / 100];
                 result.LostPackets = this._lostPackets;
                 this._lostPackets = 0;
+                result.LongestExecution = this._longestExecution;
+                this._longestExecution = TimeSpan.Zero;
             }
             return result;
         }
@@ -168,6 +177,7 @@ namespace Server
         private ConcurrentDictionary<ushort, uint> _boidsLastIndex = new ConcurrentDictionary<ushort, uint>();
         private const int positionUpdateLength = 2 + 12 + 8 + 4;
         private int _lostPackets = 0;
+        private TimeSpan _longestExecution = TimeSpan.Zero;
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
         {
             unchecked

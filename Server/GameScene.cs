@@ -203,7 +203,7 @@ namespace Server
                     {
                         Interlocked.Increment(ref this._lostPackets);
                     }
-                    return previousIndex;
+                    return packetIndex;
                 });
 
                 _boidsTimes.AddOrUpdate(shipId, _ => new List<long> { latency }, (_, l) => { l.Add(latency); return l; });

@@ -124,35 +124,34 @@ namespace Server
             public double Avg;
             public int NbSamples;
             public int[] Percentiles = new int[11];
+            public int Percentile99;
         }
 
         public ReceivedDataMetrics ComputeMetrics()
         {
-
-
             var intervals = new List<int>();
             foreach (var boid in _boidsTimes)
             {
                 var values = boid.Value.ToArray();
+                boid.Value.Clear();
                 for (int i = 1; i < values.Length; i++)
                 {
                     intervals.Add((int)(values[i] - values[i - 1]));
                 }
             }
-
-
+            
             var result = new ReceivedDataMetrics();
             if (intervals.Any())
             {
                 intervals.Sort();
 
-                result.Avg = intervals.Cast<int>().Average();
+                result.Avg = intervals.Average();
                 result.NbSamples = intervals.Count;
                 for (int i = 0; i < 11; i++)
                 {
                     result.Percentiles[i] = intervals[(i * (result.NbSamples - 1)) / 10];
                 }
-                //result.Percentiles[10] = intervals[result.NbSamples];
+                result.Percentile99 = intervals[99 * (result.NbSamples - 1) / 100];
             }
             return result;
         }

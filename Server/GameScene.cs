@@ -102,7 +102,8 @@ namespace Server
                             _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", new
                             {
                                 sends = metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                                received = ComputeMetrics() });
+                                received = ComputeMetrics()
+                            });
                             metrics.Clear();
                         }
 
@@ -127,27 +128,32 @@ namespace Server
 
         public ReceivedDataMetrics ComputeMetrics()
         {
+
+
             var intervals = new List<int>();
             foreach (var boid in _boidsTimes)
             {
                 var values = boid.Value.ToArray();
-                for(int i =1; i<values.Length; i++)
+                for (int i = 1; i < values.Length; i++)
                 {
                     intervals.Add((int)(values[i] - values[i - 1]));
                 }
             }
 
-            intervals.Sort();
 
             var result = new ReceivedDataMetrics();
-            result.Avg = intervals.Cast<int>().Average();
-            result.NbSamples = intervals.Count;
-            for (int i = 0; i<11; i++)
+            if (intervals.Any())
             {
-                result.Percentiles[i] = intervals[(i * result.NbSamples) / 10];
-            }
-            //result.Percentiles[10] = intervals[result.NbSamples];
+                intervals.Sort();
 
+                result.Avg = intervals.Cast<int>().Average();
+                result.NbSamples = intervals.Count;
+                for (int i = 0; i < 11; i++)
+                {
+                    result.Percentiles[i] = intervals[(i * result.NbSamples) / 10];
+                }
+                //result.Percentiles[10] = intervals[result.NbSamples];
+            }
             return result;
         }
 

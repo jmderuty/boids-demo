@@ -8,6 +8,7 @@ using Stormancer.Core;
 using System.Collections.Concurrent;
 using Stormancer.Diagnostics;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Server
 {
@@ -125,6 +126,7 @@ namespace Server
             public int NbSamples;
             public int[] Percentiles = new int[11];
             public int Percentile99;
+            public int LostPackets;
         }
 
         public ReceivedDataMetrics ComputeMetrics()
@@ -139,10 +141,8 @@ namespace Server
                     intervals.Add((int)values[i]);
                     //intervals.Add((int)(values[i] - values[i - 1]));
                 }
-
-
             }
-            
+
             var result = new ReceivedDataMetrics();
             if (intervals.Any())
             {
@@ -155,19 +155,23 @@ namespace Server
                     result.Percentiles[i] = intervals[(i * (result.NbSamples - 1)) / 10];
                 }
                 result.Percentile99 = intervals[99 * (result.NbSamples - 1) / 100];
+                result.LostPackets = this._lostPackets;
+                this._lostPackets = 0;
             }
             return result;
         }
 
         private ConcurrentDictionary<ushort, List<long>> _boidsTimes = new ConcurrentDictionary<ushort, List<long>>();
+        private ConcurrentDictionary<ushort, uint> _boidsLastIndex = new ConcurrentDictionary<ushort, uint>();
+        private const int positionUpdateLength = 2 + 12 + 8 + 4;
+        private int _lostPackets = 0;
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
         {
             unchecked
             {
                 var timestamp = stopWatch.ElapsedMilliseconds;
-                
-                var bytes = new byte[22];
-                packet.Stream.Read(bytes, 0, 22);
+                var bytes = new byte[positionUpdateLength];
+                packet.Stream.Read(bytes, 0, positionUpdateLength);
 
                 var shipId = BitConverter.ToUInt16(bytes, 0);
                 Ship ship;
@@ -176,8 +180,19 @@ namespace Server
                     ship.PositionUpdatedOn = DateTime.UtcNow;
                     ship.LastPositionRaw = bytes;
                 }
-                var boidNow = (long)BitConverter.ToUInt64(bytes, 14);
-                var latency = (DateTime.UtcNow.Ticks - boidNow)/10000;
+                var boidNow = (long)BitConverter.ToUInt64(bytes, 2 + 12);
+                var latency = (DateTime.UtcNow.Ticks - boidNow) / 10000;
+
+                var packetIndex = BitConverter.ToUInt32(bytes, 2 + 12 + 4);
+                this._boidsLastIndex.AddOrUpdate(shipId, packetIndex, (_, previousIndex) =>
+                {
+                    if (previousIndex != (packetIndex - 1))
+                    {
+                        Interlocked.Increment(ref this._lostPackets);
+                    }
+                    return previousIndex;
+                });
+
                 _boidsTimes.AddOrUpdate(shipId, _ => new List<long> { latency }, (_, l) => { l.Add(latency); return l; });
                 /*byte[] time = BitConverter.GetBytes(timestamp);
                 for (var i = 0; i < sizeof(long); i++)

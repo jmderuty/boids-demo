@@ -39,6 +39,7 @@ namespace BoidsClient.Cmd
         }
         private async Task RunImpl()
         {
+            var packetIndex = 0u;
             var accountId = ConfigurationManager.AppSettings["accountId"];
             var applicationName = ConfigurationManager.AppSettings["applicationName"];
             var sceneName = ConfigurationManager.AppSettings["sceneName"];
@@ -69,10 +70,12 @@ namespace BoidsClient.Cmd
                         writer.Write(_simulation.Boid.Y);
                         writer.Write(_simulation.Boid.Rot);
                         writer.Write((ulong)DateTime.UtcNow.Ticks);
+                        writer.Write(packetIndex);
                     }
                     scene.SendPacket("position.update", s => s.Write(buffer, 0, 22), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                     _simulation.Step();
                 }
+                packetIndex++;
                 await Task.Delay(200);
             }
         }
@@ -115,13 +118,14 @@ namespace BoidsClient.Cmd
             {
                 using (var reader = new BinaryReader(obj.Stream))
                 {
-                    while (reader.BaseStream.Length - reader.BaseStream.Position >= 22)
+                    while (reader.BaseStream.Length - reader.BaseStream.Position >= (2 + 12 + 8 + 4))
                     {
                         var id = reader.ReadUInt16();
                         var x = reader.ReadSingle();
                         var y = reader.ReadSingle();
                         var rot = reader.ReadSingle();
                         var time = reader.ReadUInt64();
+                        reader.ReadUInt32();
                         if (id != this.id)
                         {
                             _simulation.Environment.UpdateShipLocation(id, x, y, rot);

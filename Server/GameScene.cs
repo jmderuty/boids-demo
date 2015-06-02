@@ -107,8 +107,11 @@ namespace Server
                             });
                             metrics.Clear();
                         }
-
-                        await Task.Delay(current + interval - DateTime.UtcNow);
+                        var delay = current + interval - DateTime.UtcNow;
+                        if (delay > TimeSpan.Zero)
+                        {
+                            await Task.Delay(delay);
+                        }
                     }
                 }
                 catch (Exception ex)

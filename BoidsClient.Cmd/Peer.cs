@@ -58,7 +58,7 @@ namespace BoidsClient.Cmd
 
             await scene.Connect();
             Console.WriteLine("connected");
-            var buffer = new byte[22];
+            var buffer = new byte[26];
             while (_isRunning)
             {
                 if (_simulation != null)
@@ -125,7 +125,7 @@ namespace BoidsClient.Cmd
                         var y = reader.ReadSingle();
                         var rot = reader.ReadSingle();
                         var time = reader.ReadUInt64();
-                        reader.ReadUInt32();
+                        var packetIndex = reader.ReadUInt32();
                         if (id != this.id)
                         {
                             _simulation.Environment.UpdateShipLocation(id, x, y, rot);

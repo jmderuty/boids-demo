@@ -57,7 +57,7 @@ namespace BoidsClient.Cmd
 
             await scene.Connect();
             Console.WriteLine("connected");
-            var buffer = new byte[14];
+            var buffer = new byte[22];
             while (_isRunning)
             {
                 if (_simulation != null)
@@ -70,7 +70,7 @@ namespace BoidsClient.Cmd
                         writer.Write(_simulation.Boid.Rot);
                         writer.Write(DateTime.UtcNow.Ticks);
                     }
-                    scene.SendPacket("position.update", s => s.Write(buffer, 0, 14), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                    scene.SendPacket("position.update", s => s.Write(buffer, 0, 22), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                     _simulation.Step();
                 }
                 await Task.Delay(200);

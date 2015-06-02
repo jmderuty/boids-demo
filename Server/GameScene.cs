@@ -174,11 +174,11 @@ namespace Server
                     ship.LastPositionRaw = bytes;
                 }
                 _boidsTimes.AddOrUpdate(shipId, _ => new List<long> { timestamp }, (_, l) => { l.Add(timestamp); return l; });
-                byte[] time = BitConverter.GetBytes(timestamp);
+                /*byte[] time = BitConverter.GetBytes(timestamp);
                 for (var i = 0; i < sizeof(long); i++)
                 {
                     bytes[14 + i] = time[i];
-                }
+                }*/
             }
         }
 

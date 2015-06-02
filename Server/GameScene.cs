@@ -134,10 +134,13 @@ namespace Server
             {
                 var values = boid.Value.ToArray();
                 boid.Value.Clear();
-                for (int i = 1; i < values.Length; i++)
+                for (int i = 0; i < values.Length; i++)
                 {
-                    intervals.Add((int)(values[i] - values[i - 1]));
+                    intervals.Add((int)values[i]);
+                    //intervals.Add((int)(values[i] - values[i - 1]));
                 }
+
+
             }
             
             var result = new ReceivedDataMetrics();
@@ -173,7 +176,9 @@ namespace Server
                     ship.PositionUpdatedOn = DateTime.UtcNow;
                     ship.LastPositionRaw = bytes;
                 }
-                _boidsTimes.AddOrUpdate(shipId, _ => new List<long> { timestamp }, (_, l) => { l.Add(timestamp); return l; });
+                var boidNow = (long)BitConverter.ToUInt64(bytes, 14);
+                var latency = (DateTime.UtcNow.Ticks - boidNow)/10000;
+                _boidsTimes.AddOrUpdate(shipId, _ => new List<long> { latency }, (_, l) => { l.Add(latency); return l; });
                 /*byte[] time = BitConverter.GetBytes(timestamp);
                 for (var i = 0; i < sizeof(long); i++)
                 {

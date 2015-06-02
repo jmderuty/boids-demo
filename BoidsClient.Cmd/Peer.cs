@@ -68,7 +68,7 @@ namespace BoidsClient.Cmd
                         writer.Write(_simulation.Boid.X);
                         writer.Write(_simulation.Boid.Y);
                         writer.Write(_simulation.Boid.Rot);
-                        writer.Write(DateTime.UtcNow.Ticks);
+                        writer.Write((ulong)DateTime.UtcNow.Ticks);
                     }
                     scene.SendPacket("position.update", s => s.Write(buffer, 0, 22), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                     _simulation.Step();
@@ -103,7 +103,6 @@ namespace BoidsClient.Cmd
         {
             if (_simulation != null)
             {
-
                 var id = obj.ReadObject<ushort>();
                 Console.WriteLine("[" + _name + "] Ship {0} removed ", id);
                 _simulation.Environment.RemoveShip(id);
@@ -116,13 +115,13 @@ namespace BoidsClient.Cmd
             {
                 using (var reader = new BinaryReader(obj.Stream))
                 {
-                    while (reader.BaseStream.Position < reader.BaseStream.Length)
+                    while (reader.BaseStream.Length - reader.BaseStream.Position >= 22)
                     {
                         var id = reader.ReadUInt16();
                         var x = reader.ReadSingle();
                         var y = reader.ReadSingle();
                         var rot = reader.ReadSingle();
-                        var time = reader.ReadUInt32();
+                        var time = reader.ReadUInt64();
                         if (id != this.id)
                         {
                             _simulation.Environment.UpdateShipLocation(id, x, y, rot);

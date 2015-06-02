@@ -68,24 +68,27 @@ namespace Server
             _scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
             var lastLog = DateTime.MinValue;
             stopWatch.Start();
-
+            var metrics = new ConcurrentDictionary<int, uint>();
             while (isRunning)
             {
                 var current = DateTime.UtcNow;
-
+                
                 if (current > lastRun + interval && _scene.RemotePeers.Any())
                 {
                     if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
                     {
                         _scene.Broadcast("position.update", s =>
                         {
+                            var nb = 0;
                             foreach (var ship in _ships.Values.ToArray())
                             {
                                 if (ship.PositionUpdatedOn > lastRun)
                                 {
                                     s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
+                                    nb++;
                                 }
                             }
+                            metrics.AddOrUpdate(nb, 1, (i, old) => old++);
                         }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                     }
 
@@ -93,7 +96,8 @@ namespace Server
                     if (current > lastLog + TimeSpan.FromMinutes(1))
                     {
                         lastLog = current;
-                        _scene.GetComponent<ILogger>().Info("gameScene", "running update loop");
+                        _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+                        metrics.Clear();
                     }
 
                     await Task.Delay(current + interval - DateTime.UtcNow);
@@ -103,6 +107,8 @@ namespace Server
             stopWatch.Stop();
         }
 
+       
+       
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
         {
             var bytes = new byte[18];

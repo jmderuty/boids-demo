@@ -196,7 +196,7 @@ namespace Server
                 var boidNow = (long)BitConverter.ToUInt64(bytes, 2 + 12);
                 var latency = (DateTime.UtcNow.Ticks - boidNow) / 10000;
 
-                var packetIndex = BitConverter.ToUInt32(bytes, 2 + 12 + 4);
+                var packetIndex = BitConverter.ToUInt32(bytes, 2 + 12 + 8);
                 this._boidsLastIndex.AddOrUpdate(shipId, packetIndex, (_, previousIndex) =>
                 {
                     if (previousIndex != (packetIndex - 1))

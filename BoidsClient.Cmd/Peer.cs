@@ -71,6 +71,7 @@ namespace BoidsClient.Cmd
                         writer.Write(_simulation.Boid.Rot);
                         writer.Write((ulong)DateTime.UtcNow.Ticks);
                         writer.Write(packetIndex);
+                        Console.WriteLine(packetIndex);
                     }
                     scene.SendPacket("position.update", s => s.Write(buffer, 0, 22), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                     _simulation.Step();

@@ -156,16 +156,15 @@ namespace Server
             return result;
         }
 
-        private ConcurrentDictionary<ushort, List<uint>> _boidsTimes = new ConcurrentDictionary<ushort, List<uint>>();
+        private ConcurrentDictionary<ushort, List<long>> _boidsTimes = new ConcurrentDictionary<ushort, List<long>>();
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
         {
             unchecked
             {
-                var timestamp = (uint)stopWatch.ElapsedMilliseconds;
-
-
-                var bytes = new byte[18];
-                packet.Stream.Read(bytes, 0, 14);
+                var timestamp = stopWatch.ElapsedMilliseconds;
+                
+                var bytes = new byte[22];
+                packet.Stream.Read(bytes, 0, 22);
 
                 var shipId = BitConverter.ToUInt16(bytes, 0);
                 Ship ship;
@@ -174,9 +173,9 @@ namespace Server
                     ship.PositionUpdatedOn = DateTime.UtcNow;
                     ship.LastPositionRaw = bytes;
                 }
-                _boidsTimes.AddOrUpdate(shipId, _ => new List<uint> { timestamp }, (_, l) => { l.Add(timestamp); return l; });
+                _boidsTimes.AddOrUpdate(shipId, _ => new List<long> { timestamp }, (_, l) => { l.Add(timestamp); return l; });
                 byte[] time = BitConverter.GetBytes(timestamp);
-                for (var i = 0; i < sizeof(uint); i++)
+                for (var i = 0; i < sizeof(long); i++)
                 {
                     bytes[14 + i] = time[i];
                 }
@@ -191,7 +190,7 @@ namespace Server
                 Ship ship;
                 if (_ships.TryRemove(player.ShipId, out ship))
                 {
-                    List<uint> _;
+                    List<long> _;
                     _boidsTimes.TryRemove(player.ShipId, out _);
                     _scene.GetComponent<ILogger>().Info("gameScene", "removed ship");
                     _scene.Broadcast("ship.remove", s => arg.Peer.Serializer().Serialize(ship.id, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);

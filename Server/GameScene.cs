@@ -88,7 +88,7 @@ namespace Server
                                     nb++;
                                 }
                             }
-                            metrics.AddOrUpdate(nb, 1, (i, old) => old++);
+                            metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
                         }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                     }
 

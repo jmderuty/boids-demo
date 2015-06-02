@@ -71,40 +71,48 @@ namespace Server
             var metrics = new ConcurrentDictionary<int, uint>();
             while (isRunning)
             {
-                var current = DateTime.UtcNow;
-
-                if (current > lastRun + interval && _scene.RemotePeers.Any())
+                try
                 {
-                    if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
+                    var current = DateTime.UtcNow;
+
+                    if (current > lastRun + interval && _scene.RemotePeers.Any())
                     {
-                        _scene.Broadcast("position.update", s =>
+                        if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
                         {
-                            var nb = 0;
-                            foreach (var ship in _ships.Values.ToArray())
+                            _scene.Broadcast("position.update", s =>
                             {
-                                if (ship.PositionUpdatedOn > lastRun)
+                                var nb = 0;
+                                foreach (var ship in _ships.Values.ToArray())
                                 {
-                                    s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
-                                    nb++;
+                                    if (ship.PositionUpdatedOn > lastRun)
+                                    {
+                                        s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
+                                        nb++;
+                                    }
                                 }
-                            }
-                            metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
-                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
-                    }
+                                metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
+                            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                        }
 
-                    lastRun = current;
-                    if (current > lastLog + TimeSpan.FromMinutes(1))
-                    {
-                        lastLog = current;
-
-                        _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", new
+                        lastRun = current;
+                        if (current > lastLog + TimeSpan.FromMinutes(1))
                         {
-                            sends = metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                            received = ComputeMetrics()});
-                        metrics.Clear();
-                    }
+                            lastLog = current;
 
-                    await Task.Delay(current + interval - DateTime.UtcNow);
+                            _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", new
+                            {
+                                sends = metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                                received = ComputeMetrics() });
+                            metrics.Clear();
+                        }
+
+                        await Task.Delay(current + interval - DateTime.UtcNow);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _scene.GetComponent<ILogger>().Error("update.loop", "{0}", ex.Message);
+                    throw;
                 }
             }
 

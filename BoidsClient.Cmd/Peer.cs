@@ -56,9 +56,10 @@ namespace BoidsClient.Cmd
             scene.AddRoute("ship.add", OnShipAdded);
             scene.AddRoute("ship.me", OnGetMyShipInfos);
 
+            var frameSize = 26;
             await scene.Connect();
             Console.WriteLine("connected");
-            var buffer = new byte[26];
+            var buffer = new byte[frameSize];
             while (_isRunning)
             {
                 if (_simulation != null)
@@ -71,9 +72,8 @@ namespace BoidsClient.Cmd
                         writer.Write(_simulation.Boid.Rot);
                         writer.Write((ulong)DateTime.UtcNow.Ticks);
                         writer.Write(packetIndex);
-                        Console.WriteLine(packetIndex);
                     }
-                    scene.SendPacket("position.update", s => s.Write(buffer, 0, 22), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                    scene.SendPacket("position.update", s => s.Write(buffer, 0, frameSize), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                     _simulation.Step();
                 }
                 packetIndex++;

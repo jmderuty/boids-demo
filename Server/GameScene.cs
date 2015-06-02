@@ -203,10 +203,10 @@ namespace Server
                     {
                         Interlocked.Increment(ref this._lostPackets);
                     }
-                    if(this._lostPackets % 1000 == 0)
+                    if(this._lostPackets % 1000 == 1)
                     {
                         var logger = this._scene.GetComponent<ILogger>();
-                        logger.Trace("pouet", "previousIndex: {0}, received: {1}", previousIndex, packetIndex);
+                        logger.Trace("gamescene.packetlost", "previousIndex: {0}, received: {1}", previousIndex, packetIndex);
                     }
                     return packetIndex;
                 });

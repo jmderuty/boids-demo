@@ -150,7 +150,7 @@ namespace Server
                 result.NbSamples = intervals.Count;
                 for (int i = 0; i < 11; i++)
                 {
-                    result.Percentiles[i] = intervals[(i * result.NbSamples) / 10];
+                    result.Percentiles[i] = intervals[(i * (result.NbSamples - 1)) / 10];
                 }
                 //result.Percentiles[10] = intervals[result.NbSamples];
             }

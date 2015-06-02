@@ -72,7 +72,7 @@ namespace Server
             while (isRunning)
             {
                 var current = DateTime.UtcNow;
-                
+
                 if (current > lastRun + interval && _scene.RemotePeers.Any())
                 {
                     if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
@@ -96,7 +96,11 @@ namespace Server
                     if (current > lastLog + TimeSpan.FromMinutes(1))
                     {
                         lastLog = current;
-                        _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+
+                        _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", new
+                        {
+                            sends = metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                            received = ComputeMetrics()});
                         metrics.Clear();
                     }
 
@@ -106,26 +110,63 @@ namespace Server
 
             stopWatch.Stop();
         }
+        public class ReceivedDataMetrics
+        {
+            public double Avg;
+            public int NbSamples;
+            public int[] Percentiles = new int[11];
+        }
 
-       
-       
+        public ReceivedDataMetrics ComputeMetrics()
+        {
+            var intervals = new List<int>();
+            foreach (var boid in _boidsTimes)
+            {
+                var values = boid.Value.ToArray();
+                for(int i =1; i<values.Length; i++)
+                {
+                    intervals.Add((int)(values[i] - values[i - 1]));
+                }
+            }
+
+            intervals.Sort();
+
+            var result = new ReceivedDataMetrics();
+            result.Avg = intervals.Cast<int>().Average();
+            result.NbSamples = intervals.Count;
+            for (int i = 0; i<11; i++)
+            {
+                result.Percentiles[i] = intervals[(i * result.NbSamples) / 10];
+            }
+            //result.Percentiles[10] = intervals[result.NbSamples];
+
+            return result;
+        }
+
+        private ConcurrentDictionary<ushort, List<uint>> _boidsTimes = new ConcurrentDictionary<ushort, List<uint>>();
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
         {
-            var bytes = new byte[18];
-            packet.Stream.Read(bytes, 0, 14);
+            unchecked
+            {
+                var timestamp = (uint)stopWatch.ElapsedMilliseconds;
 
-            var shipId = BitConverter.ToUInt16(bytes, 0);
-            Ship ship;
-            if (_ships.TryGetValue(shipId, out ship))
-            {
-                ship.PositionUpdatedOn = DateTime.UtcNow;
-                ship.LastPositionRaw = bytes;
-            }
-            
-            byte[] time = BitConverter.GetBytes((uint)stopWatch.ElapsedMilliseconds);
-            for (var i = 0; i < sizeof(uint); i++)
-            {
-                bytes[14 + i] = time[i];
+
+                var bytes = new byte[18];
+                packet.Stream.Read(bytes, 0, 14);
+
+                var shipId = BitConverter.ToUInt16(bytes, 0);
+                Ship ship;
+                if (_ships.TryGetValue(shipId, out ship))
+                {
+                    ship.PositionUpdatedOn = DateTime.UtcNow;
+                    ship.LastPositionRaw = bytes;
+                }
+                _boidsTimes.AddOrUpdate(shipId, _ => new List<uint> { timestamp }, (_, l) => { l.Add(timestamp); return l; });
+                byte[] time = BitConverter.GetBytes(timestamp);
+                for (var i = 0; i < sizeof(uint); i++)
+                {
+                    bytes[14 + i] = time[i];
+                }
             }
         }
 
@@ -137,6 +178,8 @@ namespace Server
                 Ship ship;
                 if (_ships.TryRemove(player.ShipId, out ship))
                 {
+                    List<uint> _;
+                    _boidsTimes.TryRemove(player.ShipId, out _);
                     _scene.GetComponent<ILogger>().Info("gameScene", "removed ship");
                     _scene.Broadcast("ship.remove", s => arg.Peer.Serializer().Serialize(ship.id, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
                 }

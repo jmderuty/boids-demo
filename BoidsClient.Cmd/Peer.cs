@@ -67,6 +67,7 @@ namespace BoidsClient.Cmd
             var buffer = new byte[boidFrameSize];
             uint serverClock = (uint)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) % uint.MaxValue;
             var clock = new Stopwatch();
+            clock.Start();
             var watch = new Stopwatch();
             while (_isRunning)
             {

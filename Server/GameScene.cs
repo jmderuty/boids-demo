@@ -99,7 +99,7 @@ namespace Server
                             _scene.Broadcast("position.update", s =>
                             {
                                 var binWriter = new BinaryWriter(s);
-                                binWriter.Write((char)0xc0);
+                                binWriter.Write((byte)0xc0);
                                 binWriter.Write((uint)clock.ElapsedMilliseconds);
                                 var nb = 0;
                                 foreach (var ship in _ships.Values.ToArray())

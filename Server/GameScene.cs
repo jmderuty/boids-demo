@@ -98,6 +98,8 @@ namespace Server
                         {
                             _scene.Broadcast("position.update", s =>
                             {
+                                var binWriter = new BinaryWriter(s);
+                                binWriter.Write((uint)clock.ElapsedMilliseconds);
                                 var nb = 0;
                                 foreach (var ship in _ships.Values.ToArray())
                                 {

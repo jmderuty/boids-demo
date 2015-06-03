@@ -60,8 +60,10 @@ namespace BoidsClient.Cmd
             await scene.Connect();
             Console.WriteLine("connected");
             var buffer = new byte[frameSize];
+
             while (_isRunning)
             {
+                var startTime = DateTime.UtcNow;
                 if (_simulation != null)
                 {
                     using (var writer = new BinaryWriter(new MemoryStream(buffer)))
@@ -77,7 +79,11 @@ namespace BoidsClient.Cmd
                     _simulation.Step();
                 }
                 packetIndex++;
-                await Task.Delay(200);
+
+                while (DateTime.UtcNow < startTime + TimeSpan.FromMilliseconds(200))
+                {
+                    await Task.Delay(50);
+                }
             }
         }
 

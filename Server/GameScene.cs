@@ -94,6 +94,10 @@ namespace Server
                                 metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
                             }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                         }
+                        else
+                        {
+                            metrics.AddOrUpdate(0, 1, (i, old) => old + 1);
+                        }
 
                         lastRun = current;
                         if (current > lastLog + TimeSpan.FromMinutes(1))
@@ -136,7 +140,7 @@ namespace Server
             public int[] Percentiles = new int[11];
             public int Percentile99;
             public int LostPackets;
-            public TimeSpan LongestExecution;
+            public double LongestExecution;
         }
 
         public ReceivedDataMetrics ComputeMetrics()
@@ -167,7 +171,7 @@ namespace Server
                 result.Percentile99 = intervals[99 * (result.NbSamples - 1) / 100];
                 result.LostPackets = this._lostPackets;
                 this._lostPackets = 0;
-                result.LongestExecution = this._longestExecution;
+                result.LongestExecution = this._longestExecution.TotalMilliseconds;
                 this._longestExecution = TimeSpan.Zero;
             }
             return result;

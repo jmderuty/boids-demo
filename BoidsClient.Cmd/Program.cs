@@ -20,10 +20,10 @@ namespace BoidsClient.Cmd
                 for (int i = 0; i < nbBoids; i++)
                 {
                     var name = "peer-" + i;
-                    var domain = AppDomain.CreateDomain(name);
-                    domain.UnhandledException += Domain_UnhandledException;
-                    var proxy = (PeerProxy)domain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, typeof(PeerProxy).FullName);
-                    //var proxy = new PeerProxy();
+                    //var domain = AppDomain.CreateDomain(name);
+                    //domain.UnhandledException += Domain_UnhandledException;
+                    //var proxy = (PeerProxy)domain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, typeof(PeerProxy).FullName);
+                    var proxy = new PeerProxy();
                     proxy.Start(name);
                     Thread.Sleep(1000);
                 }

@@ -17,12 +17,14 @@ namespace BoidsClient.Cmd
         private ushort id;
         private bool _isRunning;
         private TimeSpan interval = TimeSpan.FromMilliseconds(200);
+        private int boidFrameSize = 2 + 3 * 4 + 4 + 4;
 
         private readonly string _name;
         public Peer(string name)
         {
             _name = name;
         }
+
         public void Start()
         {
             if (!_isRunning)
@@ -40,6 +42,7 @@ namespace BoidsClient.Cmd
                 Console.WriteLine(message);
             }
         }
+
         private async Task RunImpl()
         {
             var packetIndex = 0u;
@@ -59,10 +62,11 @@ namespace BoidsClient.Cmd
             scene.AddRoute("ship.add", OnShipAdded);
             scene.AddRoute("ship.me", OnGetMyShipInfos);
 
-            var frameSize = 26;
             await scene.Connect();
             Console.WriteLine("connected");
-            var buffer = new byte[frameSize];
+            var buffer = new byte[boidFrameSize];
+            uint serverClock = (uint)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) % uint.MaxValue;
+            var clock = new Stopwatch();
             var watch = new Stopwatch();
             while (_isRunning)
             {
@@ -77,10 +81,10 @@ namespace BoidsClient.Cmd
                         writer.Write(_simulation.Boid.X);
                         writer.Write(_simulation.Boid.Y);
                         writer.Write(_simulation.Boid.Rot);
-                        writer.Write((ulong)DateTime.UtcNow.Ticks);
+                        writer.Write(serverClock + (uint)clock.ElapsedMilliseconds);
                         writer.Write(packetIndex);
                     }
-                    scene.SendPacket("position.update", s => s.Write(buffer, 0, frameSize), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                    scene.SendPacket("position.update", s => s.Write(buffer, 0, boidFrameSize), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                     _simulation.Step();
                 }
                 packetIndex++;
@@ -91,14 +95,11 @@ namespace BoidsClient.Cmd
                     var watch2 = new Stopwatch();
                     watch2.Start();
                     await Task.Delay((int)delay);
-                    //Thread.Sleep((int)delay);
                     watch2.Stop();
                     Metrics.Instance.GetRepository("found_intervals").AddSample(id, watch2.ElapsedMilliseconds);
                 }
                 
                 Metrics.Instance.GetRepository("expected_intervals").AddSample(id, delay);
-                
-
             }
         }
 
@@ -140,13 +141,13 @@ namespace BoidsClient.Cmd
             {
                 using (var reader = new BinaryReader(obj.Stream))
                 {
-                    while (reader.BaseStream.Length - reader.BaseStream.Position >= (2 + 12 + 8 + 4))
+                    while (reader.BaseStream.Length - reader.BaseStream.Position >= boidFrameSize)
                     {
                         var id = reader.ReadUInt16();
                         var x = reader.ReadSingle();
                         var y = reader.ReadSingle();
                         var rot = reader.ReadSingle();
-                        var time = reader.ReadUInt64();
+                        var time = reader.ReadUInt32();
                         var packetIndex = reader.ReadUInt32();
                         if (id != this.id)
                         {

@@ -38,7 +38,7 @@ namespace Server
 
         private TimeSpan interval = TimeSpan.FromMilliseconds(200);
 
-        Stopwatch stopWatch = new Stopwatch();
+        Stopwatch clock = new Stopwatch();
 
         public GameScene(ISceneHost scene)
         {
@@ -57,7 +57,7 @@ namespace Server
             {
                 using (var w = new BinaryWriter(s, Encoding.UTF8, true))
                 {
-                    w.Write((uint)stopWatch.ElapsedMilliseconds);
+                    w.Write((uint)clock.ElapsedMilliseconds);
                 }
                 arg.InputStream.CopyTo(s);
             }, PacketPriority.IMMEDIATE_PRIORITY);
@@ -84,7 +84,7 @@ namespace Server
             var lastRun = DateTime.MinValue;
             _scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
             var lastLog = DateTime.MinValue;
-            stopWatch.Start();
+            clock.Start();
             var metrics = new ConcurrentDictionary<int, uint>();
             while (isRunning)
             {
@@ -147,8 +147,9 @@ namespace Server
                 }
             }
 
-            stopWatch.Stop();
+            clock.Stop();
         }
+
         public class ReceivedDataMetrics
         {
             public double Avg;
@@ -195,14 +196,14 @@ namespace Server
 
         private ConcurrentDictionary<ushort, List<long>> _boidsTimes = new ConcurrentDictionary<ushort, List<long>>();
         private ConcurrentDictionary<ushort, uint> _boidsLastIndex = new ConcurrentDictionary<ushort, uint>();
-        private const int positionUpdateLength = 2 + 12 + 8 + 4;
+        private const int positionUpdateLength = 2 + 3*4 + 4 + 4;
         private int _lostPackets = 0;
         private TimeSpan _longestExecution = TimeSpan.Zero;
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
         {
             unchecked
             {
-                var timestamp = stopWatch.ElapsedMilliseconds;
+                var time = clock.ElapsedMilliseconds;
                 var bytes = new byte[positionUpdateLength];
                 packet.Stream.Read(bytes, 0, positionUpdateLength);
 
@@ -213,30 +214,18 @@ namespace Server
                     ship.PositionUpdatedOn = DateTime.UtcNow;
                     ship.LastPositionRaw = bytes;
                 }
-                var boidNow = (long)BitConverter.ToUInt64(bytes, 2 + 12);
-                var latency = (DateTime.UtcNow.Ticks - boidNow) / 10000;
+                var boidTime = BitConverter.ToUInt32(bytes, 2 + 3*4);
+                //var latency = (DateTime.UtcNow.Ticks - boidNow) / 10000;
 
-                var packetIndex = BitConverter.ToUInt32(bytes, 2 + 12 + 8);
+                var packetIndex = BitConverter.ToUInt32(bytes, 2 + 3*4 + 4);
                 this._boidsLastIndex.AddOrUpdate(shipId, packetIndex, (_, previousIndex) =>
                 {
                     if (previousIndex < (packetIndex - 1))
                     {
                         Interlocked.Add(ref this._lostPackets, (int)(packetIndex - previousIndex - 1));
                     }
-                    if (this._lostPackets % 1000 == 1)
-                    {
-                        var logger = this._scene.GetComponent<ILogger>();
-                        logger.Trace("gamescene.packetlost", "previousIndex: {0}, received: {1}", previousIndex, packetIndex);
-                    }
                     return packetIndex;
                 });
-
-                _boidsTimes.AddOrUpdate(shipId, _ => new List<long> { latency }, (_, l) => { l.Add(latency); return l; });
-                /*byte[] time = BitConverter.GetBytes(timestamp);
-                for (var i = 0; i < sizeof(long); i++)
-                {
-                    bytes[14 + i] = time[i];
-                }*/
             }
         }
 

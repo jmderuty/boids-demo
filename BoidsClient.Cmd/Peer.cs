@@ -142,6 +142,8 @@ namespace BoidsClient.Cmd
             {
                 using (var reader = new BinaryReader(obj.Stream))
                 {
+                    reader.ReadByte();
+                    var serverTime = reader.ReadUInt32();
                     while (reader.BaseStream.Length - reader.BaseStream.Position >= boidFrameSize)
                     {
                         var id = reader.ReadUInt16();

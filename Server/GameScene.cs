@@ -9,6 +9,8 @@ using System.Collections.Concurrent;
 using Stormancer.Diagnostics;
 using System.Diagnostics;
 using System.Threading;
+using Stormancer.Plugins;
+using System.IO;
 
 namespace Server
 {
@@ -45,7 +47,21 @@ namespace Server
             _scene.Connected.Add(OnConnected);
             _scene.Disconnected.Add(OnDisconnected);
             _scene.AddRoute("position.update", OnPositionUpdate);
+            _scene.AddProcedure("clock", ClockRequest);
             _scene.Starting.Add(OnStarting);
+        }
+
+        private Task ClockRequest(RequestContext<IScenePeerClient> arg)
+        {
+            arg.SendValue(s =>
+            {
+                using (var w = new BinaryWriter(s, Encoding.UTF8, true))
+                {
+                    w.Write((uint)stopWatch.ElapsedMilliseconds);
+                }
+                arg.InputStream.CopyTo(s);
+            }, PacketPriority.IMMEDIATE_PRIORITY);
+            return Task.FromResult(true);
         }
 
         private Task OnStarting(dynamic arg)

@@ -16,8 +16,8 @@ namespace BoidsClient.Cmd
         {
             try
             {
-                ThreadPool.SetMaxThreads(workerThreads: 200, completionPortThreads: 200);
-                ThreadPool.SetMinThreads(workerThreads: 100, completionPortThreads: 100);
+                ThreadPool.SetMaxThreads(workerThreads: 400, completionPortThreads: 400);
+                ThreadPool.SetMinThreads(workerThreads: 200, completionPortThreads: 200);
                 var nbBoids = int.Parse(args[0]);
                 WriteLogs();
                 for (int i = 0; i < nbBoids; i++)

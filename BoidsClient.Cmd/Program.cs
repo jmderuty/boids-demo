@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -15,8 +16,10 @@ namespace BoidsClient.Cmd
         {
             try
             {
+                ThreadPool.SetMaxThreads(workerThreads: 200, completionPortThreads: 200);
+                ThreadPool.SetMinThreads(workerThreads: 100, completionPortThreads: 100);
                 var nbBoids = int.Parse(args[0]);
-               
+                WriteLogs();
                 for (int i = 0; i < nbBoids; i++)
                 {
                     var name = "peer-" + i;
@@ -34,7 +37,17 @@ namespace BoidsClient.Cmd
             {
             }
         }
-
+        private static async Task WriteLogs()
+        {
+            while(true)
+            {
+                await Task.Delay(10 * 1000);
+                var d = DateTime.UtcNow;
+                var m = Metrics.Instance.GetRepository("expected_intervals").ComputeMetrics();
+                Console.WriteLine("{0} : Expected: {1}", d, JsonConvert.SerializeObject(m));
+                Console.WriteLine("{0} : Found: {1}", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("found_intervals").ComputeMetrics()));
+            }
+        }
         private static void Domain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             Console.WriteLine(e.ExceptionObject.ToString());

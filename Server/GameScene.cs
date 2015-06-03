@@ -111,8 +111,8 @@ namespace Server
                             });
                             metrics.Clear();
                         }
-                        var execution = DateTime.UtcNow - current;                        
-                        if(execution > this._longestExecution)
+                        var execution = DateTime.UtcNow - current;
+                        if (execution > this._longestExecution)
                         {
                             this._longestExecution = execution;
                         }
@@ -203,11 +203,11 @@ namespace Server
                 var packetIndex = BitConverter.ToUInt32(bytes, 2 + 12 + 8);
                 this._boidsLastIndex.AddOrUpdate(shipId, packetIndex, (_, previousIndex) =>
                 {
-                    if (previousIndex != (packetIndex - 1))
+                    if (previousIndex < (packetIndex - 1))
                     {
-                        Interlocked.Increment(ref this._lostPackets);
+                        Interlocked.Add(ref this._lostPackets, (int)(packetIndex - previousIndex - 1));
                     }
-                    if(this._lostPackets % 1000 == 1)
+                    if (this._lostPackets % 1000 == 1)
                     {
                         var logger = this._scene.GetComponent<ILogger>();
                         logger.Trace("gamescene.packetlost", "previousIndex: {0}, received: {1}", previousIndex, packetIndex);

@@ -75,6 +75,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MetricsRepository.cs" />
     <Compile Include="Peer.cs" />
     <Compile Include="PeerFactory.cs" />
     <Compile Include="PlayersInfos.cs" />

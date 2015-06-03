@@ -4,7 +4,9 @@ using Stormancer.Core;
 using Stormancer.Diagnostics;
 using System;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BoidsClient.Cmd
@@ -14,6 +16,7 @@ namespace BoidsClient.Cmd
         private Simulation _simulation;
         private ushort id;
         private bool _isRunning;
+        private TimeSpan interval = TimeSpan.FromMilliseconds(200);
 
         private readonly string _name;
         public Peer(string name)
@@ -60,10 +63,12 @@ namespace BoidsClient.Cmd
             await scene.Connect();
             Console.WriteLine("connected");
             var buffer = new byte[frameSize];
-
+            var watch = new Stopwatch();
             while (_isRunning)
             {
-                var startTime = DateTime.UtcNow;
+                watch.Restart();
+                var current = DateTime.UtcNow;
+
                 if (_simulation != null)
                 {
                     using (var writer = new BinaryWriter(new MemoryStream(buffer)))
@@ -79,11 +84,21 @@ namespace BoidsClient.Cmd
                     _simulation.Step();
                 }
                 packetIndex++;
-
-                while (DateTime.UtcNow < startTime + TimeSpan.FromMilliseconds(200))
+                watch.Stop();
+                var delay = 200 - watch.ElapsedMilliseconds;
+                if (delay > 0)
                 {
-                    await Task.Delay(50);
+                    var watch2 = new Stopwatch();
+                    watch2.Start();
+                    await Task.Delay((int)delay);
+                    //Thread.Sleep((int)delay);
+                    watch2.Stop();
+                    Metrics.Instance.GetRepository("found_intervals").AddSample(id, watch2.ElapsedMilliseconds);
                 }
+                
+                Metrics.Instance.GetRepository("expected_intervals").AddSample(id, delay);
+                
+
             }
         }
 

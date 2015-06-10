@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using BoidsClient.Cmd;
+using Microsoft.WindowsAzure.ServiceRuntime;
 
 namespace BoidsClient.Worker
 {
@@ -25,7 +26,7 @@ namespace BoidsClient.Worker
 
         public void SetInstanceCount(int count)
         {
-            if(count < 0)
+            if (count < 0)
             {
                 throw new ArgumentException("Count must be positive.");
             }
@@ -33,15 +34,15 @@ namespace BoidsClient.Worker
             {
                 _currentTargetInstanceCount = count;
 
-                while(_currentTargetInstanceCount != RunningInstances)
+                while (_currentTargetInstanceCount != RunningInstances)
                 {
-                    if(_currentTargetInstanceCount < RunningInstances)
+                    if (_currentTargetInstanceCount < RunningInstances)
                     {
                         RemoveInstance();
-                        
+
                     }
 
-                    if(_currentTargetInstanceCount > RunningInstances)
+                    if (_currentTargetInstanceCount > RunningInstances)
                     {
                         AddInstance();
                     }
@@ -62,16 +63,17 @@ namespace BoidsClient.Worker
         private void AddInstance()
         {
             var name = "peer" + i++;
-            var domain = AppDomain.CreateDomain(name,null,AppDomain.CurrentDomain.BaseDirectory,"",true);
+            var domain = AppDomain.CreateDomain(name, null, AppDomain.CurrentDomain.BaseDirectory, "", true);
             var path = domain.BaseDirectory;
             var proxy = (PeerProxy)domain.CreateInstanceAndUnwrap(typeof(PeerProxy).Assembly.FullName, typeof(PeerProxy).FullName);
             var peer = new Peer { Domain = domain, Proxy = proxy };
             _peers.Add(peer);
-            
-            proxy.Start(name);
+            var target = RoleEnvironment.GetConfigurationSettingValue("Stormancer.Target").Split('/');
+            Trace.TraceInformation("Starting client instance connected to : " + target);
+            proxy.Start(name, target[0], target[1], target[2]);
         }
 
-      
+
 
         private class Peer
         {

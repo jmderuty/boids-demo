@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace BoidsClient.Cmd
 {
-    class Program: MarshalByRefObject
+    class Program : MarshalByRefObject
     {
 
         static void Main(string[] args)
@@ -16,7 +17,7 @@ namespace BoidsClient.Cmd
             try
             {
                 var nbBoids = int.Parse(args[0]);
-               
+
                 for (int i = 0; i < nbBoids; i++)
                 {
                     var name = "peer-" + i;
@@ -24,7 +25,8 @@ namespace BoidsClient.Cmd
                     domain.UnhandledException += Domain_UnhandledException;
                     var proxy = (PeerProxy)domain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, typeof(PeerProxy).FullName);
                     //var proxy = new PeerProxy();
-                    proxy.Start(name);
+                    proxy.Start(name, ConfigurationManager.AppSettings["accountId"], ConfigurationManager.AppSettings["applicationName"],
+                    ConfigurationManager.AppSettings["sceneName"]);
                     Thread.Sleep(1000);
                 }
 

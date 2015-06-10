@@ -16,9 +16,17 @@ namespace BoidsClient.Cmd
         private bool _isRunning;
 
         private readonly string _name;
-        public Peer(string name)
+
+        private string _accountId;
+        private string _app;
+        private string _scene;
+
+        public Peer(string name,string accountId, string appName, string scene)
         {
             _name = name;
+            _app = appName;
+            _accountId = accountId;
+            _scene = scene;
         }
         public void Start()
         {
@@ -39,9 +47,9 @@ namespace BoidsClient.Cmd
         }
         private async Task RunImpl()
         {
-            var accountId = ConfigurationManager.AppSettings["accountId"];
-            var applicationName = ConfigurationManager.AppSettings["applicationName"];
-            var sceneName = ConfigurationManager.AppSettings["sceneName"];
+            var accountId =_accountId;// ConfigurationManager.AppSettings["accountId"]
+            var applicationName = _app;// ConfigurationManager.AppSettings["applicationName"];
+            var sceneName = _scene;// ConfigurationManager.AppSettings["sceneName"];
 
             var config = Stormancer.ClientConfiguration.ForAccount(accountId, applicationName);
             //config.Logger = new Logger();

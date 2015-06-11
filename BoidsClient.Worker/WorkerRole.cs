@@ -33,6 +33,9 @@ namespace BoidsClient.Worker
 
         public override bool OnStart()
         {
+            ThreadPool.SetMinThreads(100, 100);
+            ThreadPool.SetMaxThreads(400, 400);
+
             // Définir le nombre maximum de connexions simultanées
             ServicePointManager.DefaultConnectionLimit = 12;
 
@@ -70,13 +73,13 @@ namespace BoidsClient.Worker
                 try
                 {
                     var peersCount = await repo.GetTargetInstancesCount();
-                    peersManager.SetInstanceCount(peersCount);
+                    await peersManager.SetInstanceCount(peersCount);
                 }
                 catch(Exception ex)
                 {
                     Trace.TraceError(ex.ToString());
                 }
-                await Task.Delay(5000);
+                await Task.Delay(1000);
             }
         }
     }

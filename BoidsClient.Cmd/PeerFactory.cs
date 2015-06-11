@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,26 +16,31 @@ namespace BoidsClient.Cmd
             try
             {
                 _peer = new Peer(name, accountId, app, scene);
-
+                _peer.Stopped = () =>{
+                    var stopped = Stopped;
+                    if(stopped !=null)
+                    {
+                        stopped();
+                    }
+                };
                 _peer.Start();
+                
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Trace.WriteLine(ex.ToString());
                 throw;
             }
 
 
         }
 
+        public Action Stopped { get; set; }
+
         public void Stop()
         {
             _peer.Stop();
         }
 
-        internal void Start(string name, object p1, object p2, object p3)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

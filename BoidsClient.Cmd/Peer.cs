@@ -34,10 +34,17 @@ namespace BoidsClient.Cmd
             {
                 _isRunning = true;
                 Console.WriteLine("Peer started");
-                RunImpl();
+                RunImpl().ContinueWith(t=> {
+
+                    var stopped = Stopped;
+                    if(stopped !=null)
+                    {
+                        stopped();
+                    }
+                });
             }
         }
-
+        public Action Stopped { get; set; }
         private class Logger : ILogger
         {
             public void Log(LogLevel level, string category, string message, object data)

@@ -24,7 +24,7 @@ namespace BoidsClient.Worker
         private int i;
         private int _currentTargetInstanceCount;
 
-        public void SetInstanceCount(int count)
+        public async Task SetInstanceCount(int count)
         {
             if (count < 0)
             {
@@ -45,6 +45,7 @@ namespace BoidsClient.Worker
                     if (_currentTargetInstanceCount > RunningInstances)
                     {
                         AddInstance();
+                        await Task.Delay(1000);
                     }
                 }
 
@@ -63,13 +64,17 @@ namespace BoidsClient.Worker
         private void AddInstance()
         {
             var name = "peer" + i++;
-            var domain = AppDomain.CreateDomain(name, null, AppDomain.CurrentDomain.BaseDirectory, "", true);
-            var path = domain.BaseDirectory;
-            var proxy = (PeerProxy)domain.CreateInstanceAndUnwrap(typeof(PeerProxy).Assembly.FullName, typeof(PeerProxy).FullName);
-            var peer = new Peer { Domain = domain, Proxy = proxy };
+            //var domain = AppDomain.CreateDomain(name, null, AppDomain.CurrentDomain.BaseDirectory, "", true);
+            //var path = domain.BaseDirectory;
+            var proxy = new PeerProxy();
+            //var proxy = (PeerProxy)domain.CreateInstanceAndUnwrap(typeof(PeerProxy).Assembly.FullName, typeof(PeerProxy).FullName);
+            var peer = new Peer { Proxy = proxy };
             _peers.Add(peer);
             var target = RoleEnvironment.GetConfigurationSettingValue("Stormancer.Target").Split('/');
             Trace.TraceInformation("Starting client instance connected to : " + target);
+            proxy.Stopped = () => {
+                _peers.Remove(peer);
+            };
             proxy.Start(name, target[0], target[1], target[2]);
         }
 

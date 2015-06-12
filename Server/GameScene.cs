@@ -8,6 +8,9 @@ using Stormancer.Core;
 using System.Collections.Concurrent;
 using Stormancer.Diagnostics;
 using System.Diagnostics;
+using System.Threading;
+using Stormancer.Plugins;
+using System.IO;
 
 namespace Server
 {
@@ -35,7 +38,7 @@ namespace Server
 
         private TimeSpan interval = TimeSpan.FromMilliseconds(200);
 
-        Stopwatch stopWatch = new Stopwatch();
+        Stopwatch clock = new Stopwatch();
 
         public GameScene(ISceneHost scene)
         {
@@ -44,7 +47,21 @@ namespace Server
             _scene.Connected.Add(OnConnected);
             _scene.Disconnected.Add(OnDisconnected);
             _scene.AddRoute("position.update", OnPositionUpdate);
+            _scene.AddProcedure("clock", ClockRequest);
             _scene.Starting.Add(OnStarting);
+        }
+
+        private Task ClockRequest(RequestContext<IScenePeerClient> arg)
+        {
+            arg.SendValue(s =>
+            {
+                using (var w = new BinaryWriter(s, Encoding.UTF8, true))
+                {
+                    w.Write((uint)clock.ElapsedMilliseconds);
+                }
+                arg.InputStream.CopyTo(s);
+            }, PacketPriority.IMMEDIATE_PRIORITY);
+            return Task.FromResult(true);
         }
 
         private Task OnStarting(dynamic arg)
@@ -58,7 +75,7 @@ namespace Server
             if (!isRunning)
             {
                 isRunning = true;
-                Task.Run(RunUpdate);
+                Task.Run(()=>RunUpdate());
             }
         }
 
@@ -67,59 +84,151 @@ namespace Server
             var lastRun = DateTime.MinValue;
             _scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
             var lastLog = DateTime.MinValue;
-            stopWatch.Start();
-
+            clock.Start();
+            var metrics = new ConcurrentDictionary<int, uint>();
             while (isRunning)
             {
-                var current = DateTime.UtcNow;
-
-                if (current > lastRun + interval && _scene.RemotePeers.Any())
+                try
                 {
-                    if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
+                    var current = DateTime.UtcNow;
+
+                    if (current > lastRun + interval && _scene.RemotePeers.Any())
                     {
-                        _scene.Broadcast("position.update", s =>
+                        if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
                         {
-                            foreach (var ship in _ships.Values.ToArray())
+                            _scene.Broadcast("position.update", s =>
                             {
-                                if (ship.PositionUpdatedOn > lastRun)
+                                var binWriter = new BinaryWriter(s);
+                                binWriter.Write((byte)0xc0);
+                                binWriter.Write((uint)clock.ElapsedMilliseconds);
+                                var nb = 0;
+                                foreach (var ship in _ships.Values.ToArray())
                                 {
-                                    s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
+                                    if (ship.PositionUpdatedOn > lastRun)
+                                    {
+                                        s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
+                                        nb++;
+                                    }
                                 }
-                            }
-                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
-                    }
+                                metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
+                            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                        }
+                        else
+                        {
+                            metrics.AddOrUpdate(0, 1, (i, old) => old + 1);
+                        }
 
-                    lastRun = current;
-                    if (current > lastLog + TimeSpan.FromMinutes(1))
-                    {
-                        lastLog = current;
-                        _scene.GetComponent<ILogger>().Info("gameScene", "running update loop");
-                    }
+                        lastRun = current;
+                        if (current > lastLog + TimeSpan.FromMinutes(1))
+                        {
+                            lastLog = current;
 
-                    await Task.Delay(current + interval - DateTime.UtcNow);
+                            _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", new
+                            {
+                                sends = metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                                received = ComputeMetrics()
+                            });
+                            metrics.Clear();
+                        }
+                        var execution = DateTime.UtcNow - current;
+                        if (execution > this._longestExecution)
+                        {
+                            this._longestExecution = execution;
+                        }
+
+                        var delay = interval - execution;
+                        if (delay > TimeSpan.Zero)
+                        {
+                            await Task.Delay(delay);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _scene.GetComponent<ILogger>().Error("update.loop", "{0}", ex.Message);
+                    throw;
                 }
             }
 
-            stopWatch.Stop();
+            clock.Stop();
         }
 
+        public class ReceivedDataMetrics
+        {
+            public double Avg;
+            public int NbSamples;
+            public int[] Percentiles = new int[11];
+            public int Percentile99;
+            public int LostPackets;
+            public double LongestExecution;
+        }
+
+        public ReceivedDataMetrics ComputeMetrics()
+        {
+            var intervals = new List<int>();
+            foreach (var boid in _boidsTimes)
+            {
+                var values = boid.Value.ToArray();
+                boid.Value.Clear();
+                for (int i = 0; i < values.Length; i++)
+                {
+                    intervals.Add((int)values[i]);
+                    //intervals.Add((int)(values[i] - values[i - 1]));
+                }
+            }
+
+            var result = new ReceivedDataMetrics();
+            if (intervals.Any())
+            {
+                intervals.Sort();
+
+                result.Avg = intervals.Average();
+                result.NbSamples = intervals.Count;
+                for (int i = 0; i < 11; i++)
+                {
+                    result.Percentiles[i] = intervals[(i * (result.NbSamples - 1)) / 10];
+                }
+                result.Percentile99 = intervals[99 * (result.NbSamples - 1) / 100];
+                result.LostPackets = this._lostPackets;
+                this._lostPackets = 0;
+                result.LongestExecution = this._longestExecution.TotalMilliseconds;
+                this._longestExecution = TimeSpan.Zero;
+            }
+            return result;
+        }
+
+        private ConcurrentDictionary<ushort, List<long>> _boidsTimes = new ConcurrentDictionary<ushort, List<long>>();
+        private ConcurrentDictionary<ushort, uint> _boidsLastIndex = new ConcurrentDictionary<ushort, uint>();
+        private const int positionUpdateLength = 2 + 3*4 + 4 + 4;
+        private int _lostPackets = 0;
+        private TimeSpan _longestExecution = TimeSpan.Zero;
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
         {
-            var bytes = new byte[18];
-            packet.Stream.Read(bytes, 0, 14);
+            unchecked
+            {
+                var time = clock.ElapsedMilliseconds;
+                var bytes = new byte[positionUpdateLength];
+                packet.Stream.Read(bytes, 0, positionUpdateLength);
 
-            var shipId = BitConverter.ToUInt16(bytes, 0);
-            Ship ship;
-            if (_ships.TryGetValue(shipId, out ship))
-            {
-                ship.PositionUpdatedOn = DateTime.UtcNow;
-                ship.LastPositionRaw = bytes;
-            }
-            
-            byte[] time = BitConverter.GetBytes((uint)stopWatch.ElapsedMilliseconds);
-            for (var i = 0; i < sizeof(uint); i++)
-            {
-                bytes[14 + i] = time[i];
+                var shipId = BitConverter.ToUInt16(bytes, 0);
+                Ship ship;
+                if (_ships.TryGetValue(shipId, out ship))
+                {
+                    ship.PositionUpdatedOn = DateTime.UtcNow;
+                    ship.LastPositionRaw = bytes;
+                }
+                var boidTime = BitConverter.ToUInt32(bytes, 2 + 3*4);
+                //var latency = (DateTime.UtcNow.Ticks - boidNow) / 10000;
+
+                var packetIndex = BitConverter.ToUInt32(bytes, 2 + 3*4 + 4);
+                this._boidsLastIndex.AddOrUpdate(shipId, packetIndex, (_, previousIndex) =>
+                {
+                    if (previousIndex < (packetIndex - 1))
+                    {
+                        Interlocked.Add(ref this._lostPackets, (int)(packetIndex - previousIndex - 1));
+                    }
+                    return packetIndex;
+                });
             }
         }
 
@@ -131,6 +240,8 @@ namespace Server
                 Ship ship;
                 if (_ships.TryRemove(player.ShipId, out ship))
                 {
+                    List<long> _;
+                    _boidsTimes.TryRemove(player.ShipId, out _);
                     _scene.GetComponent<ILogger>().Info("gameScene", "removed ship");
                     _scene.Broadcast("ship.remove", s => arg.Peer.Serializer().Serialize(ship.id, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
                 }

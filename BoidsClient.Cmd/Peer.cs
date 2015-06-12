@@ -4,7 +4,9 @@ using Stormancer.Core;
 using Stormancer.Diagnostics;
 using System;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BoidsClient.Cmd
@@ -14,6 +16,8 @@ namespace BoidsClient.Cmd
         private Simulation _simulation;
         private ushort id;
         private bool _isRunning;
+        private TimeSpan interval = TimeSpan.FromMilliseconds(200);
+        private int boidFrameSize = 2 + 3 * 4 + 4 + 4;
 
         private readonly string _name;
 
@@ -28,6 +32,7 @@ namespace BoidsClient.Cmd
             _accountId = accountId;
             _scene = scene;
         }
+
         public void Start()
         {
             if (!_isRunning)
@@ -52,11 +57,16 @@ namespace BoidsClient.Cmd
                 Console.WriteLine(message);
             }
         }
+
         private async Task RunImpl()
         {
-            var accountId =_accountId;// ConfigurationManager.AppSettings["accountId"]
-            var applicationName = _app;// ConfigurationManager.AppSettings["applicationName"];
-            var sceneName = _scene;// ConfigurationManager.AppSettings["sceneName"];
+
+            var accountId =_accountId;
+            var applicationName = _app;
+            var sceneName = _scene;
+
+            var packetIndex = 0u;
+
 
             var config = Stormancer.ClientConfiguration.ForAccount(accountId, applicationName);
             //config.Logger = new Logger();
@@ -72,9 +82,16 @@ namespace BoidsClient.Cmd
 
             await scene.Connect();
             Console.WriteLine("connected");
-            var buffer = new byte[14];
+            var buffer = new byte[boidFrameSize];
+            uint serverClock = (uint)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) % uint.MaxValue;
+            var clock = new Stopwatch();
+            clock.Start();
+            var watch = new Stopwatch();
             while (_isRunning)
             {
+                watch.Restart();
+                var current = DateTime.UtcNow;
+
                 if (_simulation != null)
                 {
                     using (var writer = new BinaryWriter(new MemoryStream(buffer)))
@@ -83,11 +100,25 @@ namespace BoidsClient.Cmd
                         writer.Write(_simulation.Boid.X);
                         writer.Write(_simulation.Boid.Y);
                         writer.Write(_simulation.Boid.Rot);
+                        writer.Write(serverClock + (uint)clock.ElapsedMilliseconds);
+                        writer.Write(packetIndex);
                     }
-                    scene.SendPacket("position.update", s => s.Write(buffer, 0, 14), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                    scene.SendPacket("position.update", s => s.Write(buffer, 0, boidFrameSize), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                     _simulation.Step();
                 }
-                await Task.Delay(200);
+                packetIndex++;
+                watch.Stop();
+                var delay = 200 - watch.ElapsedMilliseconds;
+                if (delay > 0)
+                {
+                    var watch2 = new Stopwatch();
+                    watch2.Start();
+                    await Task.Delay((int)delay);
+                    watch2.Stop();
+                    Metrics.Instance.GetRepository("found_intervals").AddSample(id, watch2.ElapsedMilliseconds);
+                }
+                
+                Metrics.Instance.GetRepository("expected_intervals").AddSample(id, delay);
             }
         }
 
@@ -117,7 +148,6 @@ namespace BoidsClient.Cmd
         {
             if (_simulation != null)
             {
-
                 var id = obj.ReadObject<ushort>();
                 Console.WriteLine("[" + _name + "] Ship {0} removed ", id);
                 _simulation.Environment.RemoveShip(id);
@@ -130,13 +160,16 @@ namespace BoidsClient.Cmd
             {
                 using (var reader = new BinaryReader(obj.Stream))
                 {
-                    while (reader.BaseStream.Position < reader.BaseStream.Length)
+                    reader.ReadByte();
+                    var serverTime = reader.ReadUInt32();
+                    while (reader.BaseStream.Length - reader.BaseStream.Position >= boidFrameSize)
                     {
                         var id = reader.ReadUInt16();
                         var x = reader.ReadSingle();
                         var y = reader.ReadSingle();
                         var rot = reader.ReadSingle();
                         var time = reader.ReadUInt32();
+                        var packetIndex = reader.ReadUInt32();
                         if (id != this.id)
                         {
                             _simulation.Environment.UpdateShipLocation(id, x, y, rot);

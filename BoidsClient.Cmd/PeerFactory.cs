@@ -11,7 +11,7 @@ namespace BoidsClient.Cmd
     public class PeerProxy : MarshalByRefObject
     {
         private Peer _peer;
-        public void Start(string name, string accountId, string app, string scene)
+        public async Task Start(string name, string accountId, string app, string scene)
         {
             try
             {
@@ -23,7 +23,7 @@ namespace BoidsClient.Cmd
                         stopped();
                     }
                 };
-                _peer.Start();
+                await _peer.Start();
                 
             }
             catch (Exception ex)
@@ -42,5 +42,13 @@ namespace BoidsClient.Cmd
             _peer.Stop();
         }
 
+
+        public void RunStep()
+        {
+            if (_peer.IsRunning)
+            {
+                _peer.Run();
+            }
+        }
     }
 }

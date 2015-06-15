@@ -3,7 +3,7 @@
   <Role name="BoidsClient.Worker">
     <Instances count="1" />
     <ConfigurationSettings>
-      <Setting name="Stormancer.Target" value="d81fc876-6094-3d92-a3d0-86d42d866b96/boids-demo/main-session"/>
+      <Setting name="Stormancer.Target" value="997bc6ac-9021-2ad6-139b-da63edee8c58/boids/main" />
       <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" value="DefaultEndpointsProtocol=https;AccountName=yoni;AccountKey=Wtwttst8riPwJYZTJOXhwwqmIFQDj+lycDQXZU2box2orTy4xgfiUN+N5fdu268Sb9VPwuxekoTTX/zqYGqilA==" />
       <Setting name="ConfigStorage" value="DefaultEndpointsProtocol=https;AccountName=yoni;AccountKey=Wtwttst8riPwJYZTJOXhwwqmIFQDj+lycDQXZU2box2orTy4xgfiUN+N5fdu268Sb9VPwuxekoTTX/zqYGqilA==" />
       <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.Enabled" value="true" />

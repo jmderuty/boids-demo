@@ -6,12 +6,22 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using BoidsClient.Cmd;
-using Microsoft.WindowsAzure.ServiceRuntime;
+
+using System.Threading;
 
 namespace BoidsClient.Worker
 {
     public class PeerManager
     {
+        private string _accountId;
+        private string _app;
+        private string _sceneId;
+        public PeerManager(string accountId, string app, string sceneId)
+        {
+            _accountId = accountId;
+            _app = app;
+            _sceneId = sceneId;
+        }
         private List<Peer> _peers = new List<Peer>();
         public int RunningInstances
         {
@@ -30,26 +40,23 @@ namespace BoidsClient.Worker
             {
                 throw new ArgumentException("Count must be positive.");
             }
-            if (count != _currentTargetInstanceCount)
+
+            while (count != RunningInstances)
             {
-                _currentTargetInstanceCount = count;
-
-                while (_currentTargetInstanceCount != RunningInstances)
+                if (count < RunningInstances)
                 {
-                    if (_currentTargetInstanceCount < RunningInstances)
-                    {
-                        RemoveInstance();
-
-                    }
-
-                    if (_currentTargetInstanceCount > RunningInstances)
-                    {
-                        AddInstance();
-                        await Task.Delay(1000);
-                    }
+                    RemoveInstance();
+                    await Task.Delay(1000);
                 }
 
+                if (count > RunningInstances)
+                {
+                    AddInstance();
+                    await Task.Delay(1000);
+                }
             }
+
+
 
         }
 
@@ -58,10 +65,10 @@ namespace BoidsClient.Worker
             var peer = _peers.Last();
             _peers.Remove(peer);
             peer.Proxy.Stop();
-            AppDomain.Unload(peer.Domain);
+            //AppDomain.Unload(peer.Domain);
         }
 
-        private void AddInstance()
+        private async Task AddInstance()
         {
             var name = "peer" + i++;
             //var domain = AppDomain.CreateDomain(name, null, AppDomain.CurrentDomain.BaseDirectory, "", true);
@@ -70,16 +77,33 @@ namespace BoidsClient.Worker
             //var proxy = (PeerProxy)domain.CreateInstanceAndUnwrap(typeof(PeerProxy).Assembly.FullName, typeof(PeerProxy).FullName);
             var peer = new Peer { Proxy = proxy };
             _peers.Add(peer);
-            var target = RoleEnvironment.GetConfigurationSettingValue("Stormancer.Target").Split('/');
-            Trace.TraceInformation("Starting client instance connected to : " + target);
-            proxy.Stopped = () => {
+
+
+            proxy.Stopped = () =>
+            {
                 _peers.Remove(peer);
             };
-            proxy.Start(name, target[0], target[1], target[2]);
+            await proxy.Start(name, _accountId, _app, _sceneId);
         }
 
-
-
+        public void RunPeers(int delay, CancellationToken ct)
+        {
+            var watch = new Stopwatch();
+            while (!ct.IsCancellationRequested)
+            {
+                watch.Restart();
+                foreach (var peer in _peers)
+                {
+                    
+                    peer.Proxy.RunStep();
+                }
+                var dt = delay - watch.ElapsedMilliseconds;
+                if (dt > 0)
+                {
+                    Thread.Sleep((int)dt);
+                }
+            }
+        }
         private class Peer
         {
             public AppDomain Domain { get; set; }

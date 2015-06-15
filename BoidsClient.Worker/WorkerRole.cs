@@ -9,6 +9,8 @@ using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.Diagnostics;
 using Microsoft.WindowsAzure.ServiceRuntime;
 using Microsoft.WindowsAzure.Storage;
+using BoidsClient.Cmd;
+using Newtonsoft.Json;
 
 namespace BoidsClient.Worker
 {
@@ -64,8 +66,11 @@ namespace BoidsClient.Worker
         private async Task RunAsync(CancellationToken cancellationToken)
         {
             var repo = new ConfigurationRepository();
-            var peersManager = new PeerManager();
-            // TODO: Remplacez le texte suivant par votre propre logique.
+            var target = RoleEnvironment.GetConfigurationSettingValue("Stormancer.Target").Split('/');
+            var peersManager = new PeerManager(target[0], target[1], target[2]);
+            var _ = Task.Run(() => WriteLogs());
+            _ = Task.Run(() => peersManager.RunPeers(200, cancellationToken));
+            
             while (!cancellationToken.IsCancellationRequested)
             {
 
@@ -75,11 +80,27 @@ namespace BoidsClient.Worker
                     var peersCount = await repo.GetTargetInstancesCount();
                     await peersManager.SetInstanceCount(peersCount);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Trace.TraceError(ex.ToString());
                 }
                 await Task.Delay(1000);
+
+            }
+        }
+
+        private static async Task WriteLogs()
+        {
+            while (true)
+            {
+                await Task.Delay(10 * 1000);
+                var d = DateTime.UtcNow;
+                var m = Metrics.Instance.GetRepository("expected_intervals").ComputeMetrics();
+                Trace.TraceInformation(" Expected", d, JsonConvert.SerializeObject(m));
+                Trace.TraceInformation("Found", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("found_intervals").ComputeMetrics()));
+                Trace.TraceInformation("Write", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("write").ComputeMetrics()));
+                Trace.TraceInformation("Send", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("send").ComputeMetrics()));
+                Trace.TraceInformation("Sim", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("sim").ComputeMetrics()));
             }
         }
     }

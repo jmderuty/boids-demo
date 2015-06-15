@@ -13,8 +13,7 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <RoleType>Worker</RoleType>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>7b3110d7</NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -62,43 +61,35 @@
       <HintPath>..\packages\WindowsAzure.Storage.4.3.0\lib\net40\Microsoft.WindowsAzure.Storage.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="MsgPack, Version=0.5.0.0, Culture=neutral, PublicKeyToken=a2625990d5dc0167, processorArchitecture=MSIL">
+    <Reference Include="MsgPack">
       <HintPath>..\packages\MsgPack.Cli.0.5.11\lib\net45\MsgPack.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Raknet.csharp, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Stormancer.Client45.x64.1.0.1.2\lib\Net45\Raknet.csharp.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Raknet.csharp">
+      <HintPath>..\packages\Stormancer.Client45.1.1.0.0\lib\Net45\Raknet.csharp.dll</HintPath>
     </Reference>
-    <Reference Include="Stormancer.Client45, Version=1.0.1.2, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>..\packages\Stormancer.Client45.x64.1.0.1.2\lib\Net45\Stormancer.Client45.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Stormancer.Client45">
+      <HintPath>..\packages\Stormancer.Client45.1.1.0.0\lib\net45\Stormancer.Client45.dll</HintPath>
     </Reference>
-    <Reference Include="Stormancer.Core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Stormancer.Client45.x64.1.0.1.2\lib\Net45\Stormancer.Core.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Stormancer.Core">
+      <HintPath>..\packages\Stormancer.Client45.1.1.0.0\lib\Net45\Stormancer.Core.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Reactive.Core, Version=2.2.5.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+    <Reference Include="System.Reactive.Core">
       <HintPath>..\packages\Rx-Core.2.2.5\lib\net45\System.Reactive.Core.dll</HintPath>
-      <Private>True</Private>
     </Reference>
-    <Reference Include="System.Reactive.Interfaces, Version=2.2.5.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+    <Reference Include="System.Reactive.Interfaces">
       <HintPath>..\packages\Rx-Interfaces.2.2.5\lib\net45\System.Reactive.Interfaces.dll</HintPath>
-      <Private>True</Private>
     </Reference>
-    <Reference Include="System.Reactive.Linq, Version=2.2.5.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+    <Reference Include="System.Reactive.Linq">
       <HintPath>..\packages\Rx-Linq.2.2.5\lib\net45\System.Reactive.Linq.dll</HintPath>
-      <Private>True</Private>
     </Reference>
-    <Reference Include="System.Reactive.PlatformServices, Version=2.2.5.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+    <Reference Include="System.Reactive.PlatformServices">
       <HintPath>..\packages\Rx-PlatformServices.2.2.5\lib\net45\System.Reactive.PlatformServices.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="System.Spatial, Version=5.6.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Spatial.5.6.2\lib\net40\System.Spatial.dll</HintPath>
@@ -112,7 +103,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConfigurationRepository.cs" />
-    <Compile Include="PeerManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WorkerRole.cs" />
   </ItemGroup>
@@ -131,10 +121,12 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Raknet.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <Content Include="x64\Raknet.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="x64\RakNet.dll" />
+    <Content Include="x86\RakNet.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
@@ -150,11 +142,11 @@
     -->
     <AutoUnifyAssemblyReferences>false</AutoUnifyAssemblyReferences>
   </PropertyGroup>
-  <Import Project="..\packages\Stormancer.Client45.x64.1.0.1.2\build\Stormancer.Client45.x64.targets" Condition="Exists('..\packages\Stormancer.Client45.x64.1.0.1.2\build\Stormancer.Client45.x64.targets')" />
+  <Import Project="..\packages\Stormancer.Client45.1.1.0.0\build\Stormancer.Client45.targets" Condition="Exists('..\packages\Stormancer.Client45.1.1.0.0\build\Stormancer.Client45.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+      <ErrorText>Ce projet fait référence à des packages NuGet qui sont manquants sur cet ordinateur. Activez l'option de restauration des packages NuGet pour les télécharger. Pour plus d'informations, consultez http://go.microsoft.com/fwlink/?LinkID=322105. Le fichier manquant est le suivant : {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Stormancer.Client45.x64.1.0.1.2\build\Stormancer.Client45.x64.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Stormancer.Client45.x64.1.0.1.2\build\Stormancer.Client45.x64.targets'))" />
+    <Error Condition="!Exists('..\packages\Stormancer.Client45.1.1.0.0\build\Stormancer.Client45.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Stormancer.Client45.1.1.0.0\build\Stormancer.Client45.targets'))" />
   </Target>
 </Project>

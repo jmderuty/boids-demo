@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BoidsClient.Cmd
 {
-    class Metrics
+    public class Metrics
     {
         private static readonly Metrics _instance = new Metrics();
         public static Metrics Instance
@@ -25,7 +25,7 @@ namespace BoidsClient.Cmd
             return _repositories.GetOrAdd(repId, i => new MetricsRepository());
         }
     }
-    class MetricsRepository
+    public class MetricsRepository
     {
         public void AddSample(ushort shipId, long sample)
         {

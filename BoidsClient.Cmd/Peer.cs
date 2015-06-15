@@ -17,37 +17,31 @@ namespace BoidsClient.Cmd
         private ushort id;
         private bool _isRunning;
         private TimeSpan interval = TimeSpan.FromMilliseconds(200);
-        private int boidFrameSize = 2 + 3 * 4 + 4 + 4;
+        private static int boidFrameSize = 2 + 3 * 4 + 4 + 4;
 
         private readonly string _name;
 
         private string _accountId;
         private string _app;
-        private string _scene;
+        private string _sceneId;
 
-        public Peer(string name,string accountId, string appName, string scene)
+        public Peer(string name, string accountId, string appName, string sceneId)
         {
             _name = name;
             _app = appName;
             _accountId = accountId;
-            _scene = scene;
+            _sceneId = sceneId;
         }
 
-        public void Start()
+        public Task Start()
         {
             if (!_isRunning)
             {
                 _isRunning = true;
                 Console.WriteLine("Peer started");
-                RunImpl().ContinueWith(t=> {
-
-                    var stopped = Stopped;
-                    if(stopped !=null)
-                    {
-                        stopped();
-                    }
-                });
+                return Initialize();
             }
+            return Task.FromResult(true);
         }
         public Action Stopped { get; set; }
         private class Logger : ILogger
@@ -58,68 +52,69 @@ namespace BoidsClient.Cmd
             }
         }
 
-        private async Task RunImpl()
+        public async Task Initialize()
         {
-
-            var accountId =_accountId;
+            var accountId = _accountId;
             var applicationName = _app;
-            var sceneName = _scene;
-
-            var packetIndex = 0u;
-
-
+            var sceneName = _sceneId;
             var config = Stormancer.ClientConfiguration.ForAccount(accountId, applicationName);
             //config.Logger = new Logger();
             var client = new Stormancer.Client(config);
-            Console.WriteLine("start");
 
             var scene = await client.GetPublicScene(sceneName, new PlayersInfos { isObserver = false });
-            Console.WriteLine("retrieved scene");
+
             scene.AddRoute("position.update", OnPositionUpdate);
             scene.AddRoute("ship.remove", OnShipRemoved);
             scene.AddRoute("ship.add", OnShipAdded);
             scene.AddRoute("ship.me", OnGetMyShipInfos);
 
             await scene.Connect();
-            Console.WriteLine("connected");
-            var buffer = new byte[boidFrameSize];
-            uint serverClock = (uint)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) % uint.MaxValue;
-            var clock = new Stopwatch();
-            clock.Start();
-            var watch = new Stopwatch();
-            while (_isRunning)
-            {
-                watch.Restart();
-                var current = DateTime.UtcNow;
 
-                if (_simulation != null)
+            _scene = scene;
+            _offset = (uint)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) % uint.MaxValue;
+            _clock.Start();
+            IsRunning = true;
+        }
+
+       
+        private Stormancer.Scene _scene;
+
+        private uint _offset;
+        private Stopwatch _clock = new Stopwatch();
+        private byte[] _buffer = new byte[boidFrameSize];
+        private uint _packetIndex = 0u;
+        public void Run()
+        {
+            var watch = new Stopwatch();
+
+            watch.Start();
+            var current = DateTime.UtcNow;
+
+            if (_simulation != null)
+            {
+                using (var writer = new BinaryWriter(new MemoryStream(_buffer)))
                 {
-                    using (var writer = new BinaryWriter(new MemoryStream(buffer)))
-                    {
-                        writer.Write(id);
-                        writer.Write(_simulation.Boid.X);
-                        writer.Write(_simulation.Boid.Y);
-                        writer.Write(_simulation.Boid.Rot);
-                        writer.Write(serverClock + (uint)clock.ElapsedMilliseconds);
-                        writer.Write(packetIndex);
-                    }
-                    scene.SendPacket("position.update", s => s.Write(buffer, 0, boidFrameSize), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
-                    _simulation.Step();
+                    writer.Write(id);
+                    writer.Write(_simulation.Boid.X);
+                    writer.Write(_simulation.Boid.Y);
+                    writer.Write(_simulation.Boid.Rot);
+                    writer.Write(_offset + (uint)_clock.ElapsedMilliseconds);
+                    writer.Write(_packetIndex);
                 }
-                packetIndex++;
-                watch.Stop();
-                var delay = 200 - watch.ElapsedMilliseconds;
-                if (delay > 0)
-                {
-                    var watch2 = new Stopwatch();
-                    watch2.Start();
-                    await Task.Delay((int)delay);
-                    watch2.Stop();
-                    Metrics.Instance.GetRepository("found_intervals").AddSample(id, watch2.ElapsedMilliseconds);
-                }
-                
-                Metrics.Instance.GetRepository("expected_intervals").AddSample(id, delay);
+                var tWrite = watch.ElapsedMilliseconds;
+                Metrics.Instance.GetRepository("write").AddSample(id, tWrite);
+                _scene.SendPacket("position.update", s => s.Write(_buffer, 0, boidFrameSize), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+
+                var tSend = watch.ElapsedMilliseconds;
+                Metrics.Instance.GetRepository("send").AddSample(id, tSend - tWrite);
+
+                _simulation.Step();
+                var tSim = watch.ElapsedMilliseconds;
+                Metrics.Instance.GetRepository("sim").AddSample(id, tSim - tSend);
             }
+            _packetIndex++;
+            watch.Stop();
+    
         }
 
         private void OnGetMyShipInfos(Packet<IScenePeer> obj)
@@ -181,7 +176,11 @@ namespace BoidsClient.Cmd
 
         public void Stop()
         {
+            _scene.Disconnect();
             _isRunning = false;
+            IsRunning = false;
         }
+
+        public bool IsRunning { get; set; }
     }
 }

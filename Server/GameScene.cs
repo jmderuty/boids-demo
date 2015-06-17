@@ -228,8 +228,8 @@ namespace Server
                     return packetIndex;
                 });
 
-                packet.Connection.Send("position.update", s =>
-                //_scene.Broadcast("position.update", s =>
+                //packet.Connection.Send("position.update", s =>
+                _scene.Broadcast("position.update", s =>
                 {
                     using (var binWriter = new BinaryWriter(s, Encoding.UTF8, true))
                     {

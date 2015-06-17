@@ -68,7 +68,7 @@ namespace Server
 
         private Task OnStarting(dynamic arg)
         {
-            StartUpdateLoop();
+            //StartUpdateLoop();
             return Task.FromResult(true);
         }
 
@@ -88,7 +88,7 @@ namespace Server
             var lastLog = DateTime.MinValue;
             clock.Start();
             var metrics = new ConcurrentDictionary<int, uint>();
-            _periodicUpdateTask= DefaultScheduler.Instance.SchedulePeriodic(interval, () =>
+            _periodicUpdateTask = DefaultScheduler.Instance.SchedulePeriodic(interval, () =>
             {
                 try
                 {
@@ -138,7 +138,7 @@ namespace Server
                             this._longestExecution = execution;
                         }
 
-                       
+
                     }
                 }
                 catch (Exception ex)
@@ -227,6 +227,17 @@ namespace Server
                     }
                     return packetIndex;
                 });
+
+                _scene.Broadcast("position.update", s =>
+                {
+                    using (var binWriter = new BinaryWriter(s, Encoding.UTF8, true))
+                    {
+                        binWriter.Write((byte)0xc0);
+                        binWriter.Write((uint)time);
+                        s.Write(bytes, 0, bytes.Length);
+                    }
+
+                }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
             }
         }
 
@@ -278,7 +289,7 @@ namespace Server
 
         private Random _rand = new Random();
 
-        public  Task OnShutdown(ShutdownArgs args)
+        public Task OnShutdown(ShutdownArgs args)
         {
             if (_periodicUpdateTask != null)
             {

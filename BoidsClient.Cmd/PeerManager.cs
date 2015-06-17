@@ -88,19 +88,32 @@ namespace BoidsClient.Worker
 
         public void RunPeers(int delay, CancellationToken ct)
         {
+
             var watch = new Stopwatch();
+            watch.Start();
             while (!ct.IsCancellationRequested)
             {
-                watch.Restart();
-                foreach (var peer in _peers)
+                try
                 {
-                    
-                    peer.Proxy.RunStep();
+                    if (watch.ElapsedMilliseconds > 199)
+                    {
+
+                        watch.Restart();
+                        foreach (var peer in _peers)
+                        {
+
+                            peer.Proxy.RunStep();
+                        }
+                        var t = watch.ElapsedMilliseconds;
+                        var dt = delay - t;
+                        Metrics.Instance.GetRepository("total_step_duration").AddSample(0, t);
+                    }
+                    Thread.Sleep(15);
+
                 }
-                var dt = delay - watch.ElapsedMilliseconds;
-                if (dt > 0)
+                catch (Exception ex)
                 {
-                    Thread.Sleep((int)dt);
+                    Trace.TraceError("An exception occured : {0}", ex.ToString());
                 }
             }
         }

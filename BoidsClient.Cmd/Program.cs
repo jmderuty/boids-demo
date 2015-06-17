@@ -18,8 +18,8 @@ namespace BoidsClient.Cmd
         {
             try
             {
-                ThreadPool.SetMaxThreads(workerThreads: 400, completionPortThreads: 400);
-                ThreadPool.SetMinThreads(workerThreads: 200, completionPortThreads: 200);
+                //ThreadPool.SetMaxThreads(workerThreads: 400, completionPortThreads: 400);
+                //ThreadPool.SetMinThreads(workerThreads: 200, completionPortThreads: 200);
                 var nbBoids = int.Parse(args[0]);
                 var pM = new PeerManager(ConfigurationManager.AppSettings["accountId"], ConfigurationManager.AppSettings["applicationName"],
                     ConfigurationManager.AppSettings["sceneName"]);
@@ -40,7 +40,7 @@ namespace BoidsClient.Cmd
         {
             while (true)
             {
-                await Task.Delay(10 * 1000);
+                await Task.Delay(60 * 1000);
                 var d = DateTime.UtcNow;
 
                 Console.WriteLine("{0} : write: {1}", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("write").ComputeMetrics()));

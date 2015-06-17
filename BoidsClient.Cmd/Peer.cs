@@ -111,8 +111,9 @@ namespace BoidsClient.Cmd
                 _simulation.Step();
                 var tSim = watch.ElapsedMilliseconds;
                 Metrics.Instance.GetRepository("sim").AddSample(id, tSim - tSend);
+                _packetIndex++;
             }
-            _packetIndex++;
+           
             watch.Stop();
     
         }

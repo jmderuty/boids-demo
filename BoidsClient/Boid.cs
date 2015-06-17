@@ -39,7 +39,7 @@ namespace BoidsClient
         {
             float dX = 0;
             float dY = 0;
-            foreach (var ship in ships.ToArray())
+            foreach (var ship in ships)
             {
                 float distance = Distance(ship);
 

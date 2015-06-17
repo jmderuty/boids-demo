@@ -35,8 +35,6 @@ namespace BoidsClient.Worker
 
         public override bool OnStart()
         {
-            ThreadPool.SetMinThreads(100, 100);
-            ThreadPool.SetMaxThreads(400, 400);
 
             // Définir le nombre maximum de connexions simultanées
             ServicePointManager.DefaultConnectionLimit = 12;
@@ -74,7 +72,7 @@ namespace BoidsClient.Worker
             while (!cancellationToken.IsCancellationRequested)
             {
 
-                Trace.TraceInformation("Working");
+               
                 try
                 {
                     var peersCount = await repo.GetTargetInstancesCount();
@@ -95,12 +93,11 @@ namespace BoidsClient.Worker
             {
                 await Task.Delay(10 * 1000);
                 var d = DateTime.UtcNow;
-                var m = Metrics.Instance.GetRepository("expected_intervals").ComputeMetrics();
-                Trace.TraceInformation(" Expected", d, JsonConvert.SerializeObject(m));
-                Trace.TraceInformation("Found", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("found_intervals").ComputeMetrics()));
-                Trace.TraceInformation("Write", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("write").ComputeMetrics()));
-                Trace.TraceInformation("Send", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("send").ComputeMetrics()));
-                Trace.TraceInformation("Sim", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("sim").ComputeMetrics()));
+                var m = Metrics.Instance.GetRepository("total_step_duration").ComputeMetrics();
+                Trace.TraceInformation("total_step_duration: {0}", JsonConvert.SerializeObject(m));
+                Trace.TraceInformation("Write              : {0}",JsonConvert.SerializeObject(Metrics.Instance.GetRepository("write").ComputeMetrics()));
+                Trace.TraceInformation("Send               : {0}",  JsonConvert.SerializeObject(Metrics.Instance.GetRepository("send").ComputeMetrics()));
+                Trace.TraceInformation("Sim                : {0}", JsonConvert.SerializeObject(Metrics.Instance.GetRepository("sim").ComputeMetrics()));
             }
         }
     }

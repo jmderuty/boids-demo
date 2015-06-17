@@ -67,7 +67,7 @@ namespace BoidsClient.Worker
             var target = RoleEnvironment.GetConfigurationSettingValue("Stormancer.Target").Split('/');
             var peersManager = new PeerManager(target[0], target[1], target[2]);
             var _ = Task.Run(() => WriteLogs());
-            _ = Task.Run(() => peersManager.RunPeers(200, cancellationToken));
+            peersManager.RunPeers(200, cancellationToken);
             
             while (!cancellationToken.IsCancellationRequested)
             {

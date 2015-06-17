@@ -26,7 +26,7 @@ namespace BoidsClient.Cmd
                 WriteLogs();
                 var cts = new CancellationTokenSource();
                 pM.SetInstanceCount(nbBoids);
-                Task.Run(() => pM.RunPeers(200, cts.Token));
+                pM.RunPeers(200, cts.Token);
 
                 Console.Read();
                 cts.Cancel();

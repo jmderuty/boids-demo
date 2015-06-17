@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using BoidsClient.Cmd;
 
 using System.Threading;
+using System.Reactive.Concurrency;
 
 namespace BoidsClient.Worker
 {
@@ -90,32 +91,22 @@ namespace BoidsClient.Worker
         {
 
             var watch = new Stopwatch();
-            watch.Start();
-            while (!ct.IsCancellationRequested)
-            {
-                try
+            
+            var disposable = DefaultScheduler.Instance.SchedulePeriodic(TimeSpan.FromMilliseconds(delay), () => {
+                Metrics.Instance.GetRepository("period").AddSample(0, watch.ElapsedMilliseconds);
+                watch.Restart();
+                foreach (var peer in _peers)
                 {
-                    if (watch.ElapsedMilliseconds > 199)
-                    {
 
-                        watch.Restart();
-                        foreach (var peer in _peers)
-                        {
-
-                            peer.Proxy.RunStep();
-                        }
-                        var t = watch.ElapsedMilliseconds;
-                        var dt = delay - t;
-                        Metrics.Instance.GetRepository("total_step_duration").AddSample(0, t);
-                    }
-                    Thread.Sleep(15);
-
+                    peer.Proxy.RunStep();
                 }
-                catch (Exception ex)
-                {
-                    Trace.TraceError("An exception occured : {0}", ex.ToString());
-                }
-            }
+                var t = watch.ElapsedMilliseconds;
+                var dt = delay - t;
+                Metrics.Instance.GetRepository("total_step_duration").AddSample(0, t);
+            });
+
+            ct.Register(() => disposable.Dispose());
+
         }
         private class Peer
         {

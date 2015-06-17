@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Threading;
 using Stormancer.Plugins;
 using System.IO;
+using System.Reactive.Concurrency;
 
 namespace Server
 {
@@ -49,6 +50,7 @@ namespace Server
             _scene.AddRoute("position.update", OnPositionUpdate);
             _scene.AddProcedure("clock", ClockRequest);
             _scene.Starting.Add(OnStarting);
+            _scene.Shuttingdown.Add(OnShutdown);
         }
 
         private Task ClockRequest(RequestContext<IScenePeerClient> arg)
@@ -75,18 +77,18 @@ namespace Server
             if (!isRunning)
             {
                 isRunning = true;
-                Task.Run(()=>RunUpdate());
+                RunUpdate();
             }
         }
-
-        private async Task RunUpdate()
+        private IDisposable _periodicUpdateTask;
+        private void RunUpdate()
         {
             var lastRun = DateTime.MinValue;
             _scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
             var lastLog = DateTime.MinValue;
             clock.Start();
             var metrics = new ConcurrentDictionary<int, uint>();
-            while (isRunning)
+            _periodicUpdateTask= DefaultScheduler.Instance.SchedulePeriodic(interval, () =>
             {
                 try
                 {
@@ -136,11 +138,7 @@ namespace Server
                             this._longestExecution = execution;
                         }
 
-                        var delay = interval - execution;
-                        if (delay > TimeSpan.Zero)
-                        {
-                            await Task.Delay(delay);
-                        }
+                       
                     }
                 }
                 catch (Exception ex)
@@ -148,7 +146,7 @@ namespace Server
                     _scene.GetComponent<ILogger>().Error("update.loop", "{0}", ex.Message);
                     throw;
                 }
-            }
+            });
 
             clock.Stop();
         }
@@ -199,7 +197,7 @@ namespace Server
 
         private ConcurrentDictionary<ushort, List<long>> _boidsTimes = new ConcurrentDictionary<ushort, List<long>>();
         private ConcurrentDictionary<ushort, uint> _boidsLastIndex = new ConcurrentDictionary<ushort, uint>();
-        private const int positionUpdateLength = 2 + 3*4 + 4 + 4;
+        private const int positionUpdateLength = 2 + 3 * 4 + 4 + 4;
         private int _lostPackets = 0;
         private TimeSpan _longestExecution = TimeSpan.Zero;
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
@@ -217,10 +215,10 @@ namespace Server
                     ship.PositionUpdatedOn = DateTime.UtcNow;
                     ship.LastPositionRaw = bytes;
                 }
-                var boidTime = BitConverter.ToUInt32(bytes, 2 + 3*4);
+                var boidTime = BitConverter.ToUInt32(bytes, 2 + 3 * 4);
                 //var latency = (DateTime.UtcNow.Ticks - boidNow) / 10000;
 
-                var packetIndex = BitConverter.ToUInt32(bytes, 2 + 3*4 + 4);
+                var packetIndex = BitConverter.ToUInt32(bytes, 2 + 3 * 4 + 4);
                 this._boidsLastIndex.AddOrUpdate(shipId, packetIndex, (_, previousIndex) =>
                 {
                     if (previousIndex < (packetIndex - 1))
@@ -279,6 +277,15 @@ namespace Server
         }
 
         private Random _rand = new Random();
+
+        public  Task OnShutdown(ShutdownArgs args)
+        {
+            if (_periodicUpdateTask != null)
+            {
+                _periodicUpdateTask.Dispose();
+            }
+            return Task.FromResult(true);
+        }
 
         private Ship CreateShip(Player player)
         {

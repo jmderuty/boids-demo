@@ -237,7 +237,6 @@ namespace Server
                 //        binWriter.Write((uint)time);
                 //        s.Write(bytes, 0, bytes.Length);
                 //    }
-
                 //}, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
             }
         }

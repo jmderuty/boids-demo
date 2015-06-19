@@ -30,6 +30,7 @@ namespace Server
         private const float Y_MIN = -100;
         private const float Y_MAX = 100;
 
+        private byte packetId = 0;
         private readonly ISceneHost _scene;
         private ushort _currentId = 0;
         private ConcurrentDictionary<long, Player> _players = new ConcurrentDictionary<long, Player>();
@@ -101,7 +102,8 @@ namespace Server
                             _scene.Broadcast("position.update", s =>
                             {
                                 var binWriter = new BinaryWriter(s);
-                                binWriter.Write((byte)0xc0);
+                                binWriter.Write(packetId);
+                                packetId++;
                                 binWriter.Write((uint)clock.ElapsedMilliseconds);
                                 var nb = 0;
                                 foreach (var ship in _ships.Values.ToArray())

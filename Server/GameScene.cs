@@ -37,7 +37,7 @@ namespace Server
 
         private bool isRunning = false;
 
-        private TimeSpan interval = TimeSpan.FromMilliseconds(200);
+        private TimeSpan interval = TimeSpan.FromMilliseconds(50);
 
         Stopwatch clock = new Stopwatch();
 
@@ -83,72 +83,72 @@ namespace Server
         private IDisposable _periodicUpdateTask;
         private void RunUpdate()
         {
-            //var lastRun = DateTime.MinValue;
-            //_scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
-            //var lastLog = DateTime.MinValue;
-            //clock.Start();
-            //var metrics = new ConcurrentDictionary<int, uint>();
-            //_periodicUpdateTask = DefaultScheduler.Instance.SchedulePeriodic(interval, () =>
-            //{
-            //    try
-            //    {
-            //        var current = DateTime.UtcNow;
+            var lastRun = DateTime.MinValue;
+            _scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
+            var lastLog = DateTime.MinValue;
+            clock.Start();
+            var metrics = new ConcurrentDictionary<int, uint>();
+            _periodicUpdateTask = DefaultScheduler.Instance.SchedulePeriodic(interval, () =>
+            {
+                try
+                {
+                    var current = DateTime.UtcNow;
 
-            //        if (current > lastRun + interval && _scene.RemotePeers.Any())
-            //        {
-            //            if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
-            //            {
-            //                _scene.Broadcast("position.update", s =>
-            //                {
-            //                    var binWriter = new BinaryWriter(s);
-            //                    binWriter.Write((byte)0xc0);
-            //                    binWriter.Write((uint)clock.ElapsedMilliseconds);
-            //                    var nb = 0;
-            //                    foreach (var ship in _ships.Values.ToArray())
-            //                    {
-            //                        if (ship.PositionUpdatedOn > lastRun)
-            //                        {
-            //                            s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
-            //                            nb++;
-            //                        }
-            //                    }
-            //                    metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
-            //                }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
-            //            }
-            //            else
-            //            {
-            //                metrics.AddOrUpdate(0, 1, (i, old) => old + 1);
-            //            }
+                    if (current > lastRun + interval && _scene.RemotePeers.Any())
+                    {
+                        if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
+                        {
+                            _scene.Broadcast("position.update", s =>
+                            {
+                                var binWriter = new BinaryWriter(s);
+                                binWriter.Write((byte)0xc0);
+                                binWriter.Write((uint)clock.ElapsedMilliseconds);
+                                var nb = 0;
+                                foreach (var ship in _ships.Values.ToArray())
+                                {
+                                    if (ship.PositionUpdatedOn > lastRun)
+                                    {
+                                        s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
+                                        nb++;
+                                    }
+                                }
+                                metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
+                            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                        }
+                        else
+                        {
+                            metrics.AddOrUpdate(0, 1, (i, old) => old + 1);
+                        }
 
-            //            lastRun = current;
-            //            if (current > lastLog + TimeSpan.FromMinutes(1))
-            //            {
-            //                lastLog = current;
+                        lastRun = current;
+                        if (current > lastLog + TimeSpan.FromMinutes(1))
+                        {
+                            lastLog = current;
 
-            //                _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", new
-            //                {
-            //                    sends = metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-            //                    received = ComputeMetrics()
-            //                });
-            //                metrics.Clear();
-            //            }
-            //            var execution = DateTime.UtcNow - current;
-            //            if (execution > this._longestExecution)
-            //            {
-            //                this._longestExecution = execution;
-            //            }
+                            _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", new
+                            {
+                                sends = metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                                received = ComputeMetrics()
+                            });
+                            metrics.Clear();
+                        }
+                        var execution = DateTime.UtcNow - current;
+                        if (execution > this._longestExecution)
+                        {
+                            this._longestExecution = execution;
+                        }
 
 
-            //        }
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        _scene.GetComponent<ILogger>().Error("update.loop", "{0}", ex.Message);
-            //        throw;
-            //    }
-            //});
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _scene.GetComponent<ILogger>().Error("update.loop", "{0}", ex.Message);
+                    throw;
+                }
+            });
 
-            //clock.Stop();
+            clock.Stop();
         }
 
         public class ReceivedDataMetrics
@@ -229,16 +229,16 @@ namespace Server
                 });
 
                 //packet.Connection.Send("position.update", s =>
-                _scene.Broadcast("position.update", s =>
-                {
-                    using (var binWriter = new BinaryWriter(s, Encoding.UTF8, true))
-                    {
-                        binWriter.Write((byte)0xc0);
-                        binWriter.Write((uint)time);
-                        s.Write(bytes, 0, bytes.Length);
-                    }
+                //_scene.Broadcast("position.update", s =>
+                //{
+                //    using (var binWriter = new BinaryWriter(s, Encoding.UTF8, true))
+                //    {
+                //        binWriter.Write((byte)0xc0);
+                //        binWriter.Write((uint)time);
+                //        s.Write(bytes, 0, bytes.Length);
+                //    }
 
-                }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                //}, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
             }
         }
 

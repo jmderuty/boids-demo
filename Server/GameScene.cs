@@ -139,8 +139,6 @@ namespace Server
                         {
                             this._longestExecution = execution;
                         }
-
-
                     }
                 }
                 catch (Exception ex)

@@ -58,6 +58,8 @@ namespace BoidsClient.Cmd
             var applicationName = _app;
             var sceneName = _sceneId;
             var config = Stormancer.ClientConfiguration.ForAccount(accountId, applicationName);
+            config.AsynchrounousDispatch = false;
+            config.ServerEndpoint = "http://api.stormancer.com";
             //config.Logger = new Logger();
             var client = new Stormancer.Client(config);
 
@@ -76,7 +78,7 @@ namespace BoidsClient.Cmd
             IsRunning = true;
         }
 
-       
+
         private Stormancer.Scene _scene;
 
         private uint _offset;
@@ -113,9 +115,9 @@ namespace BoidsClient.Cmd
                 Metrics.Instance.GetRepository("sim").AddSample(id, tSim - tSend);
                 _packetIndex++;
             }
-           
+
             watch.Stop();
-    
+
         }
 
         private void OnGetMyShipInfos(Packet<IScenePeer> obj)
@@ -177,7 +179,10 @@ namespace BoidsClient.Cmd
 
         public void Stop()
         {
-            _scene.Disconnect();
+            if (IsRunning && _scene != null)
+            {
+                _scene.Disconnect();
+            }
             _isRunning = false;
             IsRunning = false;
         }

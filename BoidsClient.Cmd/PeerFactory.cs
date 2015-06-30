@@ -39,13 +39,16 @@ namespace BoidsClient.Cmd
 
         public void Stop()
         {
-            _peer.Stop();
+            if (_peer != null)
+            {
+                _peer.Stop();
+            }
         }
 
 
         public void RunStep()
         {
-            if (_peer.IsRunning)
+            if (_peer != null && _peer.IsRunning)
             {
                 _peer.Run();
             }

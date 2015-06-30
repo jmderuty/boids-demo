@@ -97,8 +97,10 @@ namespace BoidsClient.Worker
                 watch.Restart();
                 foreach (var peer in _peers)
                 {
-
-                    peer.Proxy.RunStep();
+                    if (peer.Proxy != null)
+                    {
+                        peer.Proxy.RunStep();
+                    }
                 }
                 var t = watch.ElapsedMilliseconds;
                 var dt = delay - t;

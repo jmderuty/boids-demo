@@ -9,8 +9,8 @@
     <AzureEnableRemoteDesktop>True</AzureEnableRemoteDesktop>
     <AzureEnableWebDeploy>False</AzureEnableWebDeploy>
     <AzureFallbackToDeleteAndRecreateIfUpgradeFails>False</AzureFallbackToDeleteAndRecreateIfUpgradeFails>
-    <AzureHostedServiceLabel>BoidsBenchmark</AzureHostedServiceLabel>
-    <AzureHostedServiceName>boidsbenchmark</AzureHostedServiceName>
+    <AzureHostedServiceLabel>boidsdemo</AzureHostedServiceLabel>
+    <AzureHostedServiceName>boidsdemo</AzureHostedServiceName>
     <AzureEnableIntelliTrace>True</AzureEnableIntelliTrace>
     <AzureEnableProfiling>False</AzureEnableProfiling>
     <AzureServiceConfiguration>Cloud</AzureServiceConfiguration>

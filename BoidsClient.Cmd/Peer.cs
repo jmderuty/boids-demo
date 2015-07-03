@@ -109,8 +109,10 @@ namespace BoidsClient.Cmd
 
                 var tSend = watch.ElapsedMilliseconds;
                 Metrics.Instance.GetRepository("send").AddSample(id, tSend - tWrite);
-
-                _simulation.Step();
+                lock (_simulation.Environment)
+                {
+                    _simulation.Step();
+                }
                 var tSim = watch.ElapsedMilliseconds;
                 Metrics.Instance.GetRepository("sim").AddSample(id, tSim - tSend);
                 _packetIndex++;
@@ -137,7 +139,10 @@ namespace BoidsClient.Cmd
                 {
                     var ship = new Ship { Id = shipInfos.id, X = shipInfos.x, Y = shipInfos.y, Rot = shipInfos.rot };
                     Console.WriteLine("[" + _name + "] Ship {0} added ", shipInfos.id);
-                    _simulation.Environment.AddShip(ship);
+                    lock (_simulation.Environment)
+                    {
+                        _simulation.Environment.AddShip(ship);
+                    }
                 }
             }
         }
@@ -148,7 +153,10 @@ namespace BoidsClient.Cmd
             {
                 var id = obj.ReadObject<ushort>();
                 Console.WriteLine("[" + _name + "] Ship {0} removed ", id);
-                _simulation.Environment.RemoveShip(id);
+                lock (_simulation.Environment)
+                {
+                    _simulation.Environment.RemoveShip(id);
+                }
             }
         }
 

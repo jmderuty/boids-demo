@@ -78,7 +78,7 @@ namespace Server
             if (!isRunning)
             {
                 isRunning = true;
-                RunUpdate();
+                //RunUpdate();
             }
         }
         private IDisposable _periodicUpdateTask;
@@ -209,12 +209,12 @@ namespace Server
                 packet.Stream.Read(bytes, 0, positionUpdateLength);
 
                 var shipId = BitConverter.ToUInt16(bytes, 0);
-                Ship ship;
-                if (_ships.TryGetValue(shipId, out ship))
-                {
-                    ship.PositionUpdatedOn = DateTime.UtcNow;
-                    ship.LastPositionRaw = bytes;
-                }
+               // Ship ship;
+                //if (_ships.TryGetValue(shipId, out ship))
+                //{
+                //    ship.PositionUpdatedOn = DateTime.UtcNow;
+                //    ship.LastPositionRaw = bytes;
+                //}
                 var boidTime = BitConverter.ToUInt32(bytes, 2 + 3 * 4);
                 //var latency = (DateTime.UtcNow.Ticks - boidNow) / 10000;
 
@@ -229,15 +229,15 @@ namespace Server
                 });
 
                 //packet.Connection.Send("position.update", s =>
-                //_scene.Broadcast("position.update", s =>
-                //{
-                //    using (var binWriter = new BinaryWriter(s, Encoding.UTF8, true))
-                //    {
-                //        binWriter.Write((byte)0xc0);
-                //        binWriter.Write((uint)time);
-                //        s.Write(bytes, 0, bytes.Length);
-                //    }
-                //}, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                _scene.Broadcast("position.update", s =>
+                {
+                    using (var binWriter = new BinaryWriter(s, Encoding.UTF8, true))
+                    {
+                        binWriter.Write((byte)0xc0);
+                        binWriter.Write((uint)time);
+                        s.Write(bytes, 0, bytes.Length);
+                    }
+                }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
             }
         }
 

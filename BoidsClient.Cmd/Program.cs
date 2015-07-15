@@ -21,7 +21,8 @@ namespace BoidsClient.Cmd
                 //ThreadPool.SetMaxThreads(workerThreads: 400, completionPortThreads: 400);
                 //ThreadPool.SetMinThreads(workerThreads: 200, completionPortThreads: 200);
                 var nbBoids = int.Parse(args[0]);
-                var pM = new PeerManager(ConfigurationManager.AppSettings["accountId"], ConfigurationManager.AppSettings["applicationName"],
+                
+                var pM = new PeerManager(ConfigurationManager.AppSettings["api"]??"http://api.stormancer.com",ConfigurationManager.AppSettings["accountId"], ConfigurationManager.AppSettings["applicationName"],
                     ConfigurationManager.AppSettings["sceneName"]);
                 WriteLogs();
                 var cts = new CancellationTokenSource();
@@ -42,10 +43,15 @@ namespace BoidsClient.Cmd
             {
                 await Task.Delay(60 * 1000);
                 var d = DateTime.UtcNow;
-
-                Console.WriteLine("{0} : write: {1}", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("write").ComputeMetrics()));
-                Console.WriteLine("{0} : send: {1}", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("send").ComputeMetrics()));
-                Console.WriteLine("{0} : sim: {1}", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("sim").ComputeMetrics()));
+                try
+                {
+                    Console.WriteLine("{0} : write: {1}", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("write").ComputeMetrics()));
+                    Console.WriteLine("{0} : send: {1}", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("send").ComputeMetrics()));
+                    Console.WriteLine("{0} : sim: {1}", d, JsonConvert.SerializeObject(Metrics.Instance.GetRepository("sim").ComputeMetrics()));
+                }
+                catch (Exception ex) {
+                    Console.WriteLine(ex.Message);
+                }
             }
         }
         private static void Domain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

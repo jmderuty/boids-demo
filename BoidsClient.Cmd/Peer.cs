@@ -24,13 +24,15 @@ namespace BoidsClient.Cmd
         private string _accountId;
         private string _app;
         private string _sceneId;
+        private string _apiEndpoint;
 
-        public Peer(string name, string accountId, string appName, string sceneId)
+        public Peer(string name, string apiEndpoint,string accountId, string appName, string sceneId)
         {
             _name = name;
             _app = appName;
             _accountId = accountId;
             _sceneId = sceneId;
+            _apiEndpoint = apiEndpoint;
         }
 
         public Task Start()
@@ -59,7 +61,7 @@ namespace BoidsClient.Cmd
             var sceneName = _sceneId;
             var config = Stormancer.ClientConfiguration.ForAccount(accountId, applicationName);
             config.AsynchrounousDispatch = false;
-            config.ServerEndpoint = "http://api.stormancer.com";
+            config.ServerEndpoint = _apiEndpoint;
             //config.Logger = new Logger();
             var client = new Stormancer.Client(config);
 

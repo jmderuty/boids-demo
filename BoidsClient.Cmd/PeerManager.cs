@@ -17,11 +17,13 @@ namespace BoidsClient.Worker
         private string _accountId;
         private string _app;
         private string _sceneId;
-        public PeerManager(string accountId, string app, string sceneId)
+        private string _apiEndpoint;
+        public PeerManager(string apiEndpoint, string accountId, string app, string sceneId)
         {
             _accountId = accountId;
             _app = app;
             _sceneId = sceneId;
+            _apiEndpoint = apiEndpoint;
         }
         private List<Peer> _peers = new List<Peer>();
         public int RunningInstances
@@ -89,7 +91,7 @@ namespace BoidsClient.Worker
             {
                 _peers.Remove(peer);
             };
-            await proxy.Start(name, _accountId, _app, _sceneId);
+            await proxy.Start(name,_apiEndpoint, _accountId, _app, _sceneId);
         }
 
         public void RunPeers(int delay, CancellationToken ct)

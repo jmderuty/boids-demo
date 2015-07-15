@@ -65,7 +65,7 @@ namespace BoidsClient.Worker
         {
             var repo = new ConfigurationRepository();
             var target = RoleEnvironment.GetConfigurationSettingValue("Stormancer.Target").Split('/');
-            var peersManager = new PeerManager(target[0], target[1], target[2]);
+            var peersManager = new PeerManager("http://api.stormancer.com",target[0], target[1], target[2]);
             var _ = Task.Run(() => WriteLogs());
             peersManager.RunPeers(200, cancellationToken);
             

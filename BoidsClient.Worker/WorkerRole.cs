@@ -65,7 +65,7 @@ namespace BoidsClient.Worker
         {
             var repo = new ConfigurationRepository();
             var target = RoleEnvironment.GetConfigurationSettingValue("Stormancer.Target").Split('/');
-            var peersManager = new PeerManager(target[0], target[1], target[2]);
+            var peersManager = new PeerManager("http://api.stormancer.com",target[0], target[1], target[2]);
             var _ = Task.Run(() => WriteLogs());
             peersManager.RunPeers(200, cancellationToken);
             
@@ -91,11 +91,12 @@ namespace BoidsClient.Worker
         {
             while (true)
             {
-                await Task.Delay(10 * 1000);
+                await Task.Delay(60 * 1000);
                 var d = DateTime.UtcNow;
                 var m = Metrics.Instance.GetRepository("total_step_duration").ComputeMetrics();
+                Trace.TraceInformation("period             : {0}", JsonConvert.SerializeObject(Metrics.Instance.GetRepository("period").ComputeMetrics()));
                 Trace.TraceInformation("total_step_duration: {0}", JsonConvert.SerializeObject(m));
-                Trace.TraceInformation("Write              : {0}",JsonConvert.SerializeObject(Metrics.Instance.GetRepository("write").ComputeMetrics()));
+                Trace.TraceInformation("Write              : {0}", JsonConvert.SerializeObject(Metrics.Instance.GetRepository("write").ComputeMetrics()));
                 Trace.TraceInformation("Send               : {0}",  JsonConvert.SerializeObject(Metrics.Instance.GetRepository("send").ComputeMetrics()));
                 Trace.TraceInformation("Sim                : {0}", JsonConvert.SerializeObject(Metrics.Instance.GetRepository("sim").ComputeMetrics()));
             }

@@ -24,13 +24,15 @@ namespace BoidsClient.Cmd
         private string _accountId;
         private string _app;
         private string _sceneId;
+        private string _apiEndpoint;
 
-        public Peer(string name, string accountId, string appName, string sceneId)
+        public Peer(string name, string apiEndpoint,string accountId, string appName, string sceneId)
         {
             _name = name;
             _app = appName;
             _accountId = accountId;
             _sceneId = sceneId;
+            _apiEndpoint = apiEndpoint;
         }
 
         public Task Start()
@@ -58,6 +60,8 @@ namespace BoidsClient.Cmd
             var applicationName = _app;
             var sceneName = _sceneId;
             var config = Stormancer.ClientConfiguration.ForAccount(accountId, applicationName);
+            config.AsynchrounousDispatch = false;
+            config.ServerEndpoint = _apiEndpoint;
             //config.Logger = new Logger();
             var client = new Stormancer.Client(config);
 
@@ -76,7 +80,7 @@ namespace BoidsClient.Cmd
             IsRunning = true;
         }
 
-       
+
         private Stormancer.Scene _scene;
 
         private uint _offset;
@@ -107,15 +111,17 @@ namespace BoidsClient.Cmd
 
                 var tSend = watch.ElapsedMilliseconds;
                 Metrics.Instance.GetRepository("send").AddSample(id, tSend - tWrite);
-
-                _simulation.Step();
+                lock (_simulation.Environment)
+                {
+                    _simulation.Step();
+                }
                 var tSim = watch.ElapsedMilliseconds;
                 Metrics.Instance.GetRepository("sim").AddSample(id, tSim - tSend);
                 _packetIndex++;
             }
-           
+
             watch.Stop();
-    
+
         }
 
         private void OnGetMyShipInfos(Packet<IScenePeer> obj)
@@ -135,7 +141,10 @@ namespace BoidsClient.Cmd
                 {
                     var ship = new Ship { Id = shipInfos.id, X = shipInfos.x, Y = shipInfos.y, Rot = shipInfos.rot };
                     Console.WriteLine("[" + _name + "] Ship {0} added ", shipInfos.id);
-                    _simulation.Environment.AddShip(ship);
+                    lock (_simulation.Environment)
+                    {
+                        _simulation.Environment.AddShip(ship);
+                    }
                 }
             }
         }
@@ -146,7 +155,10 @@ namespace BoidsClient.Cmd
             {
                 var id = obj.ReadObject<ushort>();
                 Console.WriteLine("[" + _name + "] Ship {0} removed ", id);
-                _simulation.Environment.RemoveShip(id);
+                lock (_simulation.Environment)
+                {
+                    _simulation.Environment.RemoveShip(id);
+                }
             }
         }
 
@@ -177,7 +189,10 @@ namespace BoidsClient.Cmd
 
         public void Stop()
         {
-            _scene.Disconnect();
+            if (IsRunning && _scene != null)
+            {
+                _scene.Disconnect();
+            }
             _isRunning = false;
             IsRunning = false;
         }

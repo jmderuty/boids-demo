@@ -85,6 +85,7 @@ namespace BoidsClient
         /// <param name="environment">Environment of the boid.</param>
         public void Step(float dt, Environment environment)
         {
+
             Flock(environment.VisibleShips.Values);
 
             CheckSpeed();

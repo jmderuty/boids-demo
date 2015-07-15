@@ -17,11 +17,13 @@ namespace BoidsClient.Worker
         private string _accountId;
         private string _app;
         private string _sceneId;
-        public PeerManager(string accountId, string app, string sceneId)
+        private string _apiEndpoint;
+        public PeerManager(string apiEndpoint, string accountId, string app, string sceneId)
         {
             _accountId = accountId;
             _app = app;
             _sceneId = sceneId;
+            _apiEndpoint = apiEndpoint;
         }
         private List<Peer> _peers = new List<Peer>();
         public int RunningInstances
@@ -63,9 +65,12 @@ namespace BoidsClient.Worker
 
         private void RemoveInstance()
         {
-            var peer = _peers.Last();
-            _peers.Remove(peer);
-            peer.Proxy.Stop();
+            lock (_peers)
+            {
+                var peer = _peers.Last();
+                _peers.Remove(peer);
+                peer.Proxy.Stop();
+            }
             //AppDomain.Unload(peer.Domain);
         }
 
@@ -77,14 +82,16 @@ namespace BoidsClient.Worker
             var proxy = new PeerProxy();
             //var proxy = (PeerProxy)domain.CreateInstanceAndUnwrap(typeof(PeerProxy).Assembly.FullName, typeof(PeerProxy).FullName);
             var peer = new Peer { Proxy = proxy };
-            _peers.Add(peer);
-
+            lock (_peers)
+            {
+                _peers.Add(peer);
+            }
 
             proxy.Stopped = () =>
             {
                 _peers.Remove(peer);
             };
-            await proxy.Start(name, _accountId, _app, _sceneId);
+            await proxy.Start(name,_apiEndpoint, _accountId, _app, _sceneId);
         }
 
         public void RunPeers(int delay, CancellationToken ct)
@@ -95,14 +102,19 @@ namespace BoidsClient.Worker
             var disposable = DefaultScheduler.Instance.SchedulePeriodic(TimeSpan.FromMilliseconds(delay), () => {
                 Metrics.Instance.GetRepository("period").AddSample(0, watch.ElapsedMilliseconds);
                 watch.Restart();
-                foreach (var peer in _peers)
+                lock (_peers)
                 {
-
-                    peer.Proxy.RunStep();
+                    foreach (var peer in _peers)
+                    {
+                        if (peer.Proxy != null)
+                        {
+                            peer.Proxy.RunStep();
+                        }
+                    }
+                    var t = watch.ElapsedMilliseconds;
+                    var dt = delay - t;
+                    Metrics.Instance.GetRepository("total_step_duration").AddSample(0, t);
                 }
-                var t = watch.ElapsedMilliseconds;
-                var dt = delay - t;
-                Metrics.Instance.GetRepository("total_step_duration").AddSample(0, t);
             });
 
             ct.Register(() => disposable.Dispose());

@@ -17,8 +17,7 @@ namespace Server
 
         public ushort team;
 
-        public Weapon[] weapons { get; set;
-        }
+        //public Weapon[] weapons { get; set; }
         public byte[] LastPositionRaw { get; internal set; }
         public DateTime PositionUpdatedOn { get; internal set; }
 

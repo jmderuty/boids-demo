@@ -59,48 +59,48 @@ namespace Server
 
         private async Task UseSkill(RequestContext<IScenePeerClient> arg)
         {
-            var p = arg.ReadObject<UserSkillRequest>();
-            var ship = _ships[_players[arg.RemotePeer.Id].ShipId];
+            //var p = arg.ReadObject<UserSkillRequest>();
+            //var ship = _ships[_players[arg.RemotePeer.Id].ShipId];
 
-            if(ship.Status != ShipStatus.Game)
-            {
-                throw new ClientException("You can only use skill during games.");
-            }
+            //if(ship.Status != ShipStatus.Game)
+            //{
+            //    throw new ClientException("You can only use skill during games.");
+            //}
 
-            var timestamp = _scene.GetComponent<IEnvironment>().Clock;
-            var weapon = ship.weapons.FirstOrDefault(w => w.id == p.skillId);
-            if(weapon == null)
-            {
-                throw new ClientException(string.Format("Skill '{0}' not available.", p.skillId));
-            }
+            //var timestamp = _scene.GetComponent<IEnvironment>().Clock;
+            //var weapon = ship.weapons.FirstOrDefault(w => w.id == p.skillId);
+            //if(weapon == null)
+            //{
+            //    throw new ClientException(string.Format("Skill '{0}' not available.", p.skillId));
+            //}
 
             
 
-            if (weapon.fireTimestamp + weapon.coolDown > timestamp )
-            {
-                throw new ClientException("Skill in cooldown.");
-            }
+            //if (weapon.fireTimestamp + weapon.coolDown > timestamp )
+            //{
+            //    throw new ClientException("Skill in cooldown.");
+            //}
 
-            var target = _ships[p.target];
+            //var target = _ships[p.target];
             
             
 
-            weapon.fireTimestamp = timestamp;
+            //weapon.fireTimestamp = timestamp;
 
-            if(_rand.Next(100) < weapon.precision*100)
-            {
-                if(target.currentPv > 0 && target.Status == ShipStatus.Game)
-                {
-                    target.currentPv -= weapon.damage;
+            //if(_rand.Next(100) < weapon.precision*100)
+            //{
+            //    if(target.currentPv > 0 && target.Status == ShipStatus.Game)
+            //    {
+            //        target.currentPv -= weapon.damage;
 
-                    _scene.Broadcast("ship.damaged", new ShipDamageMsg { shipId = target.id, change = weapon.damage});
-                    if(target.currentPv <= 0)
-                    {
-                        target.Status = ShipStatus.Dead;
-                        _scene.Broadcast("status.changed", new StatusChangedMsg { shipId = target.id, status = target.Status });
-                    }
-                }
-            }
+            //        _scene.Broadcast("ship.damaged", new ShipDamageMsg { shipId = target.id, change = weapon.damage});
+            //        if(target.currentPv <= 0)
+            //        {
+            //            target.Status = ShipStatus.Dead;
+            //            _scene.Broadcast("status.changed", new StatusChangedMsg { shipId = target.id, status = target.Status });
+            //        }
+            //    }
+            //}
 
 
         }
@@ -370,7 +370,7 @@ namespace Server
                 y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN)),
                 currentPv = 50,
                 maxPv = 50,
-                weapons = new Weapon[] { new Weapon { id = "canon", damage = 10, precision = 0.4f, coolDown = 750 }, new Weapon { id = "missile", damage = 40, precision = 0.6f, coolDown = 3 } }
+               // weapons = new Weapon[] { new Weapon { id = "canon", damage = 10, precision = 0.4f, coolDown = 750 }, new Weapon { id = "missile", damage = 40, precision = 0.6f, coolDown = 3 } }
             };
             return ship;
         }

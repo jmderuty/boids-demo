@@ -12,6 +12,7 @@ using System.Threading;
 using Stormancer.Plugins;
 using System.IO;
 using System.Reactive.Concurrency;
+using Stormancer.Server.Components;
 
 namespace Server
 {
@@ -41,6 +42,7 @@ namespace Server
         private TimeSpan interval = TimeSpan.FromMilliseconds(50);
 
         Stopwatch clock = new Stopwatch();
+      
 
         public GameScene(ISceneHost scene)
         {
@@ -50,8 +52,57 @@ namespace Server
             _scene.Disconnected.Add(OnDisconnected);
             _scene.AddRoute("position.update", OnPositionUpdate);
             _scene.AddProcedure("clock", ClockRequest);
+            _scene.AddProcedure("skill", UseSkill);
             _scene.Starting.Add(OnStarting);
             _scene.Shuttingdown.Add(OnShutdown);
+        }
+
+        private async Task UseSkill(RequestContext<IScenePeerClient> arg)
+        {
+            var p = arg.ReadObject<UserSkillRequest>();
+            var ship = _ships[_players[arg.RemotePeer.Id].ShipId];
+
+            if(ship.Status != ShipStatus.Game)
+            {
+                throw new ClientException("You can only use skill during games.");
+            }
+
+            var timestamp = _scene.GetComponent<IEnvironment>().Clock;
+            var weapon = ship.weapons.FirstOrDefault(w => w.id == p.skillId);
+            if(weapon == null)
+            {
+                throw new ClientException(string.Format("Skill '{0}' not available.", p.skillId));
+            }
+
+            
+
+            if (weapon.fireTimestamp + weapon.coolDown > timestamp )
+            {
+                throw new ClientException("Skill in cooldown.");
+            }
+
+            var target = _ships[p.target];
+            
+            
+
+            weapon.fireTimestamp = timestamp;
+
+            if(_rand.Next(100) < weapon.precision*100)
+            {
+                if(target.currentPv > 0 && target.Status == ShipStatus.Game)
+                {
+                    target.currentPv -= weapon.damage;
+
+                    _scene.Broadcast("ship.damaged", new ShipDamageMsg { shipId = target.id, change = weapon.damage});
+                    if(target.currentPv <= 0)
+                    {
+                        target.Status = ShipStatus.Dead;
+                        _scene.Broadcast("status.changed", new StatusChangedMsg { shipId = target.id, status = target.Status });
+                    }
+                }
+            }
+
+
         }
 
         private Task ClockRequest(RequestContext<IScenePeerClient> arg)
@@ -241,6 +292,7 @@ namespace Server
             }
         }
 
+
         private async Task OnDisconnected(DisconnectedArgs arg)
         {
             Player player;
@@ -306,13 +358,19 @@ namespace Server
                 id = _currentId++;
             }
             player.ShipId = id;
+            var pv = 50;
             var ship = new Ship
             {
+                Status = ShipStatus.Game,
+                team = id,//Deathmatch
                 id = id,
                 player = player,
                 rot = (float)(_rand.NextDouble() * 2 * Math.PI),
                 x = X_MIN + (float)(_rand.NextDouble() * (X_MAX - X_MIN)),
-                y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN))
+                y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN)),
+                currentPv = 50,
+                maxPv = 50,
+                weapons = new Weapon[] { new Weapon { id = "canon", damage = 10, precision = 0.4f, coolDown = 750 }, new Weapon { id = "missile", damage = 40, precision = 0.6f, coolDown = 3 } }
             };
             return ship;
         }

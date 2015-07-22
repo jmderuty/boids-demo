@@ -31,6 +31,7 @@ namespace Server
         private const float Y_MIN = -100;
         private const float Y_MAX = 100;
 
+        private byte packetId = 0;
         private readonly ISceneHost _scene;
         private ushort _currentId = 0;
         private ConcurrentDictionary<long, Player> _players = new ConcurrentDictionary<long, Player>();
@@ -38,7 +39,7 @@ namespace Server
 
         private bool isRunning = false;
 
-        private TimeSpan interval = TimeSpan.FromMilliseconds(200);
+        private TimeSpan interval = TimeSpan.FromMilliseconds(50);
 
         Stopwatch clock = new Stopwatch();
       
@@ -128,78 +129,77 @@ namespace Server
             if (!isRunning)
             {
                 isRunning = true;
-                RunUpdate();
+                //RunUpdate();
             }
         }
         private IDisposable _periodicUpdateTask;
         private void RunUpdate()
         {
-            //var lastRun = DateTime.MinValue;
-            //_scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
-            //var lastLog = DateTime.MinValue;
-            //clock.Start();
-            //var metrics = new ConcurrentDictionary<int, uint>();
-            //_periodicUpdateTask = DefaultScheduler.Instance.SchedulePeriodic(interval, () =>
-            //{
-            //    try
-            //    {
-            //        var current = DateTime.UtcNow;
+            var lastRun = DateTime.MinValue;
+            _scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
+            var lastLog = DateTime.MinValue;
+            clock.Start();
+            var metrics = new ConcurrentDictionary<int, uint>();
+            _periodicUpdateTask = DefaultScheduler.Instance.SchedulePeriodic(interval, () =>
+            {
+                try
+                {
+                    var current = DateTime.UtcNow;
 
-            //        if (current > lastRun + interval && _scene.RemotePeers.Any())
-            //        {
-            //            if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
-            //            {
-            //                _scene.Broadcast("position.update", s =>
-            //                {
-            //                    var binWriter = new BinaryWriter(s);
-            //                    binWriter.Write((byte)0xc0);
-            //                    binWriter.Write((uint)clock.ElapsedMilliseconds);
-            //                    var nb = 0;
-            //                    foreach (var ship in _ships.Values.ToArray())
-            //                    {
-            //                        if (ship.PositionUpdatedOn > lastRun)
-            //                        {
-            //                            s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
-            //                            nb++;
-            //                        }
-            //                    }
-            //                    metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
-            //                }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
-            //            }
-            //            else
-            //            {
-            //                metrics.AddOrUpdate(0, 1, (i, old) => old + 1);
-            //            }
+                    if (current > lastRun + interval && _scene.RemotePeers.Any())
+                    {
+                        if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
+                        {
+                            _scene.Broadcast("position.update", s =>
+                            {
+                                var binWriter = new BinaryWriter(s);
+                                binWriter.Write(packetId);
+                                packetId++;
+                                binWriter.Write((uint)clock.ElapsedMilliseconds);
+                                var nb = 0;
+                                foreach (var ship in _ships.Values.ToArray())
+                                {
+                                    if (ship.PositionUpdatedOn > lastRun)
+                                    {
+                                        s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
+                                        nb++;
+                                    }
+                                }
+                                metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
+                            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                        }
+                        else
+                        {
+                            metrics.AddOrUpdate(0, 1, (i, old) => old + 1);
+                        }
 
-            //            lastRun = current;
-            //            if (current > lastLog + TimeSpan.FromMinutes(1))
-            //            {
-            //                lastLog = current;
+                        lastRun = current;
+                        if (current > lastLog + TimeSpan.FromMinutes(1))
+                        {
+                            lastLog = current;
 
-            //                _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", new
-            //                {
-            //                    sends = metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-            //                    received = ComputeMetrics()
-            //                });
-            //                metrics.Clear();
-            //            }
-            //            var execution = DateTime.UtcNow - current;
-            //            if (execution > this._longestExecution)
-            //            {
-            //                this._longestExecution = execution;
-            //            }
+                            _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", new
+                            {
+                                sends = metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                                received = ComputeMetrics()
+                            });
+                            metrics.Clear();
+                        }
+                        var execution = DateTime.UtcNow - current;
+                        if (execution > this._longestExecution)
+                        {
+                            this._longestExecution = execution;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _scene.GetComponent<ILogger>().Error("update.loop", "{0}", ex.Message);
+                    throw;
+                }
+            });
 
-
-            //        }
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        _scene.GetComponent<ILogger>().Error("update.loop", "{0}", ex.Message);
-            //        throw;
-            //    }
-            //});
-
-            //clock.Stop();
+            clock.Stop();
         }
 
         public class ReceivedDataMetrics
@@ -260,12 +260,12 @@ namespace Server
                 packet.Stream.Read(bytes, 0, positionUpdateLength);
 
                 var shipId = BitConverter.ToUInt16(bytes, 0);
-                Ship ship;
-                if (_ships.TryGetValue(shipId, out ship))
-                {
-                    ship.PositionUpdatedOn = DateTime.UtcNow;
-                    ship.LastPositionRaw = bytes;
-                }
+               // Ship ship;
+                //if (_ships.TryGetValue(shipId, out ship))
+                //{
+                //    ship.PositionUpdatedOn = DateTime.UtcNow;
+                //    ship.LastPositionRaw = bytes;
+                //}
                 var boidTime = BitConverter.ToUInt32(bytes, 2 + 3 * 4);
                 //var latency = (DateTime.UtcNow.Ticks - boidNow) / 10000;
 
@@ -288,7 +288,6 @@ namespace Server
                         binWriter.Write((uint)time);
                         s.Write(bytes, 0, bytes.Length);
                     }
-
                 }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
             }
         }

@@ -11,7 +11,10 @@ namespace Server
     {
         public void Run(IAppBuilder builder)
         {
-            builder.AddGameScene();             
+            builder.AddGameScene();
+
+            var admin = builder.AdminPlugin("admintest", Stormancer.Server.Admin.AdminPluginHostVersion.V0_1).Name("my admin test");
+            admin.Get["/"] = ctx => "helloworld";
         }
     }
 }

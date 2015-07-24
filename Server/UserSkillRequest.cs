@@ -15,11 +15,8 @@ namespace Server
 
     public class UseSkillResponse
     {
-        public string skillId { get; set; }
-        public ushort origin { get; set; }
-        public ushort target { get; set; }
-
-        public bool success { get; set; }
+        public long skillUpTimestamp;
+        
     }
 
     public class DamageMsg

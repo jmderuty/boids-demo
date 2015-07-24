@@ -25,8 +25,8 @@ namespace BoidsClient.Cmd
         private string _app;
         private string _sceneId;
         private string _apiEndpoint;
-
-        public Peer(string name, string apiEndpoint,string accountId, string appName, string sceneId)
+        private Client _client;
+        public Peer(string name, string apiEndpoint, string accountId, string appName, string sceneId)
         {
             _name = name;
             _app = appName;
@@ -63,9 +63,9 @@ namespace BoidsClient.Cmd
             config.AsynchrounousDispatch = false;
             config.ServerEndpoint = _apiEndpoint;
             //config.Logger = new Logger();
-            var client = new Stormancer.Client(config);
+            _client = new Stormancer.Client(config);
 
-            var scene = await client.GetPublicScene(sceneName, new PlayersInfos { isObserver = false });
+            var scene = await _client.GetPublicScene(sceneName, new PlayersInfos { isObserver = false });
 
             scene.AddRoute("position.update", OnPositionUpdate);
             scene.AddRoute("ship.remove", OnShipRemoved);
@@ -102,8 +102,8 @@ namespace BoidsClient.Cmd
                     writer.Write(_simulation.Boid.X);
                     writer.Write(_simulation.Boid.Y);
                     writer.Write(_simulation.Boid.Rot);
-                    writer.Write(_offset + (uint)_clock.ElapsedMilliseconds);
-                    writer.Write(_packetIndex);
+                    writer.Write(_client.Clock);
+
                 }
                 var tWrite = watch.ElapsedMilliseconds;
                 Metrics.Instance.GetRepository("write").AddSample(id, tWrite);
@@ -139,7 +139,7 @@ namespace BoidsClient.Cmd
                 var shipInfos = obj.ReadObject<ShipCreatedDto>();
                 if (shipInfos.id != this.id)
                 {
-                    var ship = new Ship { Id = shipInfos.id, X = shipInfos.x, Y = shipInfos.y, Rot = shipInfos.rot };
+                    var ship = new Ship { Id = shipInfos.id, Team = shipInfos.team, X = shipInfos.x, Y = shipInfos.y, Rot = shipInfos.rot, Weapons = shipInfos.weapons };
                     Console.WriteLine("[" + _name + "] Ship {0} added ", shipInfos.id);
                     lock (_simulation.Environment)
                     {
@@ -177,7 +177,7 @@ namespace BoidsClient.Cmd
                         var y = reader.ReadSingle();
                         var rot = reader.ReadSingle();
                         var time = reader.ReadUInt32();
-                        var packetIndex = reader.ReadUInt32();
+
                         if (id != this.id)
                         {
                             _simulation.Environment.UpdateShipLocation(id, x, y, rot);

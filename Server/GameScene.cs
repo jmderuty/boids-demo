@@ -39,10 +39,10 @@ namespace Server
 
         private bool isRunning = false;
 
-        private TimeSpan interval = TimeSpan.FromMilliseconds(50);
+        private long interval = 50;
 
         Stopwatch clock = new Stopwatch();
-      
+
 
         public GameScene(ISceneHost scene)
         {
@@ -51,7 +51,7 @@ namespace Server
             _scene.Connected.Add(OnConnected);
             _scene.Disconnected.Add(OnDisconnected);
             _scene.AddRoute("position.update", OnPositionUpdate);
-            _scene.AddProcedure("clock", ClockRequest);
+           
             _scene.AddProcedure("skill", UseSkill);
             _scene.Starting.Add(OnStarting);
             _scene.Shuttingdown.Add(OnShutdown);
@@ -59,68 +59,65 @@ namespace Server
 
         private async Task UseSkill(RequestContext<IScenePeerClient> arg)
         {
-            //var p = arg.ReadObject<UserSkillRequest>();
-            //var ship = _ships[_players[arg.RemotePeer.Id].ShipId];
+            var env = _scene.GetComponent<IEnvironment>();
+            var p = arg.ReadObject<UserSkillRequest>();
+            var ship = _ships[_players[arg.RemotePeer.Id].ShipId];
 
-            //if(ship.Status != ShipStatus.Game)
-            //{
-            //    throw new ClientException("You can only use skill during games.");
-            //}
-
-            //var timestamp = _scene.GetComponent<IEnvironment>().Clock;
-            //var weapon = ship.weapons.FirstOrDefault(w => w.id == p.skillId);
-            //if(weapon == null)
-            //{
-            //    throw new ClientException(string.Format("Skill '{0}' not available.", p.skillId));
-            //}
-
-            
-
-            //if (weapon.fireTimestamp + weapon.coolDown > timestamp )
-            //{
-            //    throw new ClientException("Skill in cooldown.");
-            //}
-
-            //var target = _ships[p.target];
-            
-            
-
-            //weapon.fireTimestamp = timestamp;
-
-            //if(_rand.Next(100) < weapon.precision*100)
-            //{
-            //    if(target.currentPv > 0 && target.Status == ShipStatus.Game)
-            //    {
-            //        target.currentPv -= weapon.damage;
-
-            //        _scene.Broadcast("ship.damaged", new ShipDamageMsg { shipId = target.id, change = weapon.damage});
-            //        if(target.currentPv <= 0)
-            //        {
-            //            target.Status = ShipStatus.Dead;
-            //            _scene.Broadcast("status.changed", new StatusChangedMsg { shipId = target.id, status = target.Status });
-            //        }
-            //    }
-            //}
-
-
-        }
-
-        private Task ClockRequest(RequestContext<IScenePeerClient> arg)
-        {
-            arg.SendValue(s =>
+            if (ship.Status != ShipStatus.InGame)
             {
-                using (var w = new BinaryWriter(s, Encoding.UTF8, true))
+                throw new ClientException("You can only use skill during games.");
+            }
+
+            var timestamp = _scene.GetComponent<IEnvironment>().Clock;
+            var weapon = ship.weapons.FirstOrDefault(w => w.id == p.skillId);
+            if (weapon == null)
+            {
+                throw new ClientException(string.Format("Skill '{0}' not available.", p.skillId));
+            }
+
+
+
+            if (weapon.fireTimestamp + weapon.coolDown > timestamp)
+            {
+                throw new ClientException("Skill in cooldown.");
+            }
+
+            var target = _ships[p.target];
+
+            var dx = ship.x - target.x;
+            var dy = ship.y - target.y;
+            if (weapon.range * weapon.range < dx * dx + dy * dy)
+            {
+                throw new ClientException("Target out of range.");
+            }
+
+            weapon.fireTimestamp = timestamp;
+
+            if (_rand.Next(100) < weapon.precision * 100)
+            {
+                if (target.currentPv > 0 && target.Status == ShipStatus.InGame)
                 {
-                    w.Write((uint)clock.ElapsedMilliseconds);
+                    target.currentPv -= weapon.damage;
+
+                    _scene.Broadcast("ship.usedSkill", new ShipDamageMsg { shipId = target.id, origin = ship.id, pvLost = weapon.damage });
+                    if (target.currentPv <= 0)
+                    {
+                        target.UpdateStatus(ShipStatus.Dead, env.Clock);
+                        _scene.Broadcast("status.changed", new StatusChangedMsg { shipId = target.id, status = target.Status });
+                    }
                 }
-                arg.InputStream.CopyTo(s);
-            }, PacketPriority.IMMEDIATE_PRIORITY);
-            return Task.FromResult(true);
+            }
+
+            arg.SendValue(new UseSkillResponse { skillUpTimestamp = weapon.fireTimestamp + weapon.coolDown });
+
+
         }
+
+  
 
         private Task OnStarting(dynamic arg)
         {
-            //StartUpdateLoop();
+            StartUpdateLoop();
             return Task.FromResult(true);
         }
 
@@ -129,22 +126,23 @@ namespace Server
             if (!isRunning)
             {
                 isRunning = true;
-                //RunUpdate();
+                RunUpdate();
             }
         }
         private IDisposable _periodicUpdateTask;
         private void RunUpdate()
         {
-            var lastRun = DateTime.MinValue;
+            var env = _scene.GetComponent<IEnvironment>();
+            long lastRun = 0;
             _scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
-            var lastLog = DateTime.MinValue;
+            long lastLog = 0;
             clock.Start();
             var metrics = new ConcurrentDictionary<int, uint>();
-            _periodicUpdateTask = DefaultScheduler.Instance.SchedulePeriodic(interval, () =>
+            _periodicUpdateTask = DefaultScheduler.Instance.SchedulePeriodic(TimeSpan.FromMilliseconds(interval), () =>
             {
                 try
                 {
-                    var current = DateTime.UtcNow;
+                    var current = env.Clock;
 
                     if (current > lastRun + interval && _scene.RemotePeers.Any())
                     {
@@ -159,9 +157,18 @@ namespace Server
                                 var nb = 0;
                                 foreach (var ship in _ships.Values.ToArray())
                                 {
-                                    if (ship.PositionUpdatedOn > lastRun)
+                                    if (ship.PositionUpdatedOn > lastRun && ship.Status != ShipStatus.Dead)
                                     {
-                                        s.Write(ship.LastPositionRaw, 0, ship.LastPositionRaw.Length);
+                                        using(var writer = new BinaryWriter(s, Encoding.UTF8,true))
+                                        {
+                                            writer.Write(ship.id);
+                                            writer.Write(ship.x);
+                                            writer.Write(ship.y);
+                                            writer.Write(ship.rot);
+                                            writer.Write(ship.PositionUpdatedOn);
+                                            
+                                        }
+                                       
                                         nb++;
                                     }
                                 }
@@ -174,7 +181,7 @@ namespace Server
                         }
 
                         lastRun = current;
-                        if (current > lastLog + TimeSpan.FromMinutes(1))
+                        if (current > lastLog + 1000*60)
                         {
                             lastLog = current;
 
@@ -185,23 +192,49 @@ namespace Server
                             });
                             metrics.Clear();
                         }
-                        var execution = DateTime.UtcNow - current;
+                        var execution = env.Clock - current;
                         if (execution > this._longestExecution)
                         {
                             this._longestExecution = execution;
                         }
                     }
+
+                    RunGameplayLoop();
+                    
                 }
                 catch (Exception ex)
                 {
                     _scene.GetComponent<ILogger>().Error("update.loop", "{0}", ex.Message);
-                    throw;
+                   
                 }
             });
 
             clock.Stop();
         }
 
+        private void RunGameplayLoop()
+        {
+            var clock = _scene.GetComponent<IEnvironment>().Clock;
+            foreach(var ship in _ships.ToArray())
+            {
+                if(ship.Value.Status == ShipStatus.Dead && ship.Value.lastStatusUpdate + 2000 < clock)
+                {
+                    ReviveShip(ship.Value);
+                }
+            }
+        }
+
+        private void ReviveShip(Ship ship)
+        {
+            var clock = _scene.GetComponent<IEnvironment>().Clock;
+            ship.x = X_MIN + (float)(_rand.NextDouble() * (X_MAX - X_MIN));
+            ship.y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN));
+            ship.PositionUpdatedOn = clock;
+
+            ship.Status = ShipStatus.InGame;
+
+            _scene.Broadcast("status.changed", new StatusChangedMsg { shipId = ship.id, status = ship.Status });
+        }
         public class ReceivedDataMetrics
         {
             public double Avg;
@@ -240,8 +273,8 @@ namespace Server
                 result.Percentile99 = intervals[99 * (result.NbSamples - 1) / 100];
                 result.LostPackets = this._lostPackets;
                 this._lostPackets = 0;
-                result.LongestExecution = this._longestExecution.TotalMilliseconds;
-                this._longestExecution = TimeSpan.Zero;
+                result.LongestExecution = this._longestExecution;
+                this._longestExecution = 0;
             }
             return result;
         }
@@ -250,45 +283,59 @@ namespace Server
         private ConcurrentDictionary<ushort, uint> _boidsLastIndex = new ConcurrentDictionary<ushort, uint>();
         private const int positionUpdateLength = 2 + 3 * 4 + 4 + 4;
         private int _lostPackets = 0;
-        private TimeSpan _longestExecution = TimeSpan.Zero;
+        private long _longestExecution = 0;
         private void OnPositionUpdate(Packet<IScenePeerClient> packet)
         {
             unchecked
             {
                 var time = clock.ElapsedMilliseconds;
-                var bytes = new byte[positionUpdateLength];
-                packet.Stream.Read(bytes, 0, positionUpdateLength);
-
-                var shipId = BitConverter.ToUInt16(bytes, 0);
-               // Ship ship;
-                //if (_ships.TryGetValue(shipId, out ship))
-                //{
-                //    ship.PositionUpdatedOn = DateTime.UtcNow;
-                //    ship.LastPositionRaw = bytes;
-                //}
-                var boidTime = BitConverter.ToUInt32(bytes, 2 + 3 * 4);
-                //var latency = (DateTime.UtcNow.Ticks - boidNow) / 10000;
-
-                var packetIndex = BitConverter.ToUInt32(bytes, 2 + 3 * 4 + 4);
-                this._boidsLastIndex.AddOrUpdate(shipId, packetIndex, (_, previousIndex) =>
+             
+                
+                using (var reader = new BinaryReader(packet.Stream))
                 {
-                    if (previousIndex < (packetIndex - 1))
+                    var shipId = reader.ReadUInt16();
+                    var x = reader.ReadSingle();
+                    var y = reader.ReadSingle();
+                    var rot = reader.ReadSingle();
+                    var timestamp = reader.ReadInt64();
+                    
+                    Ship ship;
+                    if (_ships.TryGetValue(shipId, out ship))
                     {
-                        Interlocked.Add(ref this._lostPackets, (int)(packetIndex - previousIndex - 1));
+                        ship.PositionUpdatedOn = timestamp;
+                        ship.x = x;
+                        ship.y = y;
+                        ship.rot = rot;
+                        
                     }
-                    return packetIndex;
-                });
+
+                    //this._boidsLastIndex.AddOrUpdate(shipId, packetIndex, (_, previousIndex) =>
+                    //{
+                    //    if (previousIndex < (packetIndex - 1))
+                    //    {
+                    //        Interlocked.Add(ref this._lostPackets, (int)(packetIndex - previousIndex - 1));
+                    //    }
+                    //    return packetIndex;
+                    //});
+                }
+
+              
+               
+             
+
+              
+               
 
                 //packet.Connection.Send("position.update", s =>
-                _scene.Broadcast("position.update", s =>
-                {
-                    using (var binWriter = new BinaryWriter(s, Encoding.UTF8, true))
-                    {
-                        binWriter.Write((byte)0xc0);
-                        binWriter.Write((uint)time);
-                        s.Write(bytes, 0, bytes.Length);
-                    }
-                }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                //_scene.Broadcast("position.update", s =>
+                //{
+                //    using (var binWriter = new BinaryWriter(s, Encoding.UTF8, true))
+                //    {
+                //        binWriter.Write((byte)0xc0);
+                //        binWriter.Write((uint)time);
+                //        s.Write(bytes, 0, bytes.Length);
+                //    }
+                //}, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
             }
         }
 
@@ -322,7 +369,7 @@ namespace Server
 
                 _ships.AddOrUpdate(ship.id, ship, (id, old) => ship);
 
-                var dto = new ShipCreatedDto { id = ship.id, x = ship.x, y = ship.y, rot = ship.rot };
+                var dto = new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons };
                 client.Send("ship.me", s => client.Serializer().Serialize(dto, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 
                 var peersBySerializer = _scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
@@ -361,7 +408,7 @@ namespace Server
             var pv = 50;
             var ship = new Ship
             {
-                Status = ShipStatus.Game,
+                Status = ShipStatus.InGame,
                 team = id,//Deathmatch
                 id = id,
                 player = player,
@@ -370,7 +417,7 @@ namespace Server
                 y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN)),
                 currentPv = 50,
                 maxPv = 50,
-               // weapons = new Weapon[] { new Weapon { id = "canon", damage = 10, precision = 0.4f, coolDown = 750 }, new Weapon { id = "missile", damage = 40, precision = 0.6f, coolDown = 3 } }
+                weapons = new Weapon[] { new Weapon { id = "canon", damage = 10, precision = 0.4f, coolDown =1500, range = 20 }/*, new Weapon { id = "missile", damage = 40, precision = 0.6f, coolDown = 3 }*/ }
             };
             return ship;
         }

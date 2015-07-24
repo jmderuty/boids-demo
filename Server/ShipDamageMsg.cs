@@ -2,7 +2,10 @@
 {
     public class ShipDamageMsg
     {
-        public int change;
         public ushort shipId;
+
+        public int pvLost { get; set; }
+
+        public ushort origin { get; set; }
     }
 }

@@ -17,10 +17,17 @@ namespace Server
 
         public ushort team;
 
-        //public Weapon[] weapons { get; set; }
-        public byte[] LastPositionRaw { get; internal set; }
-        public DateTime PositionUpdatedOn { get; internal set; }
+        public Weapon[] weapons { get; set; }
+     
+        public long PositionUpdatedOn { get; internal set; }
 
+        public long lastStatusUpdate { get; set; }
+
+        public void UpdateStatus(ShipStatus newStatus, long timestamp)
+        {
+            Status = newStatus;
+            lastStatusUpdate = timestamp;
+        }
         public ShipStatus Status { get; set; }
     }
 
@@ -28,7 +35,7 @@ namespace Server
     public enum ShipStatus
     {
         Waiting,
-        Game,
+        InGame,
         Dead,
         GameComplete
     }

@@ -76,11 +76,15 @@
     <Compile Include="..\Server\ShipCreatedDto.cs">
       <Link>ShipCreatedDto.cs</Link>
     </Compile>
+    <Compile Include="..\Server\UserSkillRequest.cs">
+      <Link>UserSkillRequest.cs</Link>
+    </Compile>
     <Compile Include="Boid.cs" />
     <Compile Include="Environment.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Ship.cs" />
     <Compile Include="Simulation.cs" />
+    <Compile Include="Weapon.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Server;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,5 +13,11 @@ namespace BoidsClient
         public float X { get; set; }
         public float Y { get; set; }
         public float Rot { get; set; }
+
+        public ushort team { get; set; }
+
+        public Weapon[] Weapons { get; set; }
+
+        public ushort Team { get; set; }
     }
 }

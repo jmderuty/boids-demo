@@ -39,7 +39,7 @@ namespace BoidsClient
         {
             float dX = 0;
             float dY = 0;
-            foreach (var ship in ships)
+            foreach (var ship in ships.ToArray())
             {
                 float distance = Distance(ship);
 
@@ -95,7 +95,16 @@ namespace BoidsClient
             var dy = (float)Math.Sin(Rot) * speed * dt;
             X += dx;
             Y += dy;
+
+            Fight(environment.VisibleShips.Values);
         }
+
+        private void Fight(IEnumerable<Ship> valueCollection)
+        {
+            throw new NotImplementedException();
+        }
+
+        
 
 
         private void CheckSpeed()

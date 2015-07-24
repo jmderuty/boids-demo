@@ -12,6 +12,9 @@ namespace Server
         public float rot;
         public float y;
 
+        public ushort team { get; set; }
         public ushort id { get; set; }
+
+        public Weapon[] weapons { get; set; }
     }
 }

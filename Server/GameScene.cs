@@ -41,9 +41,6 @@ namespace Server
 
         private long interval = 50;
 
-        Stopwatch clock = new Stopwatch();
-
-
         public GameScene(ISceneHost scene)
         {
             _scene = scene;
@@ -74,8 +71,6 @@ namespace Server
             {
                 throw new ClientException(string.Format("Skill '{0}' not available.", p.skillId));
             }
-
-
 
             if (weapon.fireTimestamp + weapon.coolDown > timestamp)
             {
@@ -110,11 +105,7 @@ namespace Server
             }
 
             arg.SendValue(new UseSkillResponse { skillUpTimestamp = weapon.fireTimestamp + weapon.coolDown });
-
-
         }
-
-  
 
         private Task OnStarting(dynamic arg)
         {
@@ -130,6 +121,7 @@ namespace Server
                 RunUpdate();
             }
         }
+
         private IDisposable _periodicUpdateTask;
         private void RunUpdate()
         {
@@ -137,7 +129,6 @@ namespace Server
             long lastRun = 0;
             _scene.GetComponent<ILogger>().Info("gameScene", "Starting update loop");
             long lastLog = 0;
-            clock.Start();
             var metrics = new ConcurrentDictionary<int, uint>();
             _periodicUpdateTask = DefaultScheduler.Instance.SchedulePeriodic(TimeSpan.FromMilliseconds(interval), () =>
             {
@@ -151,35 +142,29 @@ namespace Server
                         {
                             _scene.Broadcast("position.update", s =>
                             {
-                                var binWriter = new BinaryWriter(s);
-                                binWriter.Write(packetId);
-                                packetId++;
-                                binWriter.Write((uint)clock.ElapsedMilliseconds);
-                                var nb = 0;
+                                //var nb = 0;
                                 foreach (var ship in _ships.Values.ToArray())
                                 {
                                     if (ship.PositionUpdatedOn > lastRun && ship.Status == ShipStatus.InGame)
                                     {
-                                        using(var writer = new BinaryWriter(s, Encoding.UTF8,true))
+                                        using(var writer = new BinaryWriter(s, Encoding.UTF8, true))
                                         {
                                             writer.Write(ship.id);
                                             writer.Write(ship.x);
                                             writer.Write(ship.y);
                                             writer.Write(ship.rot);
                                             writer.Write(ship.PositionUpdatedOn);
-                                            
                                         }
-                                       
-                                        nb++;
+                                        //nb++;
                                     }
                                 }
-                                metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
+                                //metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
                             }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
                         }
-                        else
-                        {
-                            metrics.AddOrUpdate(0, 1, (i, old) => old + 1);
-                        }
+                        //else
+                        //{
+                        //    metrics.AddOrUpdate(0, 1, (i, old) => old + 1);
+                        //}
 
                         lastRun = current;
                         if (current > lastLog + 1000*60)
@@ -201,16 +186,12 @@ namespace Server
                     }
 
                     RunGameplayLoop();
-                    
                 }
                 catch (Exception ex)
                 {
                     _scene.GetComponent<ILogger>().Error("update.loop", "{0}", ex.Message);
-                   
                 }
             });
-
-            clock.Stop();
         }
 
         private void RunGameplayLoop()
@@ -236,6 +217,7 @@ namespace Server
             _scene.BroadcastStatusChanged(ship.id, ship.Status);
             _scene.Broadcast("ship.statusChanged", new StatusChangedMsg { shipId = ship.id, status = ship.Status });
         }
+
         public class ReceivedDataMetrics
         {
             public double Avg;
@@ -289,9 +271,6 @@ namespace Server
         {
             unchecked
             {
-                var time = clock.ElapsedMilliseconds;
-             
-                
                 using (var reader = new BinaryReader(packet.Stream))
                 {
                     var shipId = reader.ReadUInt16();
@@ -319,13 +298,6 @@ namespace Server
                     //    return packetIndex;
                     //});
                 }
-
-              
-               
-             
-
-              
-               
 
                 //packet.Connection.Send("position.update", s =>
                 //_scene.Broadcast("position.update", s =>

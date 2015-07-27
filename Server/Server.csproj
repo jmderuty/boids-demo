@@ -105,12 +105,13 @@
     <None Include="_app.json" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Assets\Admin\admintest\index.html" />
-    <Content Include="Assets\Public\admintest\index.html" />
     <Content Include="bin\Newtonsoft.Json.dll" />
     <Content Include="bin\Stormancer.Management.Client.dll" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Assets\Admin\admintest\" />
+    <Folder Include="Assets\Public\admintest\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

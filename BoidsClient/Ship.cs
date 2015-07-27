@@ -19,5 +19,16 @@ namespace BoidsClient
         public Weapon[] Weapons { get; set; }
 
         public ushort Team { get; set; }
+
+        public ShipStatus Status { get; set; }
+    }
+
+
+    public enum ShipStatus
+    {
+        Waiting,
+        InGame,
+        Dead,
+        GameComplete
     }
 }

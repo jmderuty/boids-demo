@@ -7,5 +7,7 @@
         public int pvLost { get; set; }
 
         public ushort origin { get; set; }
+
+        public string weaponId { get; set; }
     }
 }

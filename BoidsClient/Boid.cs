@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Server;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,9 +17,9 @@ namespace BoidsClient
             Rot = rot;
         }
 
-        public float X { get; private set; }
-        public float Y { get; private set; }
-        public float Rot { get; private set; }
+        public float X { get;  set; }
+        public float Y { get;  set; }
+        public float Rot { get;  set; }
         //Vitesse max (m/s);
         private float speed = 15;
         //Vitesse de rotation max (rad/s)
@@ -85,7 +86,7 @@ namespace BoidsClient
         /// <param name="environment">Environment of the boid.</param>
         public void Step(float dt, Environment environment)
         {
-
+            
             Flock(environment.VisibleShips.Values);
 
             CheckSpeed();
@@ -99,13 +100,33 @@ namespace BoidsClient
             Fight(environment.VisibleShips.Values);
         }
 
-        private void Fight(IEnumerable<Ship> valueCollection)
+        private void Fight(IEnumerable<Ship> ships)
         {
-            throw new NotImplementedException();
+            var q = from weapon in Weapons where isAvailable(weapon) select weapon;
+           foreach(var w in q)
+           {
+               var target = ships.FirstOrDefault(s => AtRange(s, w));
+
+               if(target != null)
+               {
+                   Fire(target, w);
+               }
+           }
         }
 
-        
+        private bool isAvailable(Weapon weapon)
+        {
+            return Clock() > weapon.fireTimestamp + weapon.coolDown;
+        }
 
+        private bool AtRange(Ship ship, Weapon weapon)
+        {
+            return (ship.X - X) * (ship.X - X) + (ship.Y - Y) * (ship.Y - Y) < weapon.range * weapon.range;
+        }
+
+        public Func<long> Clock;
+
+        public Func<Ship, Weapon, Task> Fire;
 
         private void CheckSpeed()
         {
@@ -119,5 +140,7 @@ namespace BoidsClient
             }
         }
 
+
+        public List<Weapon> Weapons { get; set; }
     }
 }

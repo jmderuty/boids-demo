@@ -93,12 +93,13 @@ namespace Server
                 if (target.currentPv > 0 && target.Status == ShipStatus.InGame)
                 {
                     target.currentPv -= weapon.damage;
+                    _scene.BroadcastUsedSkill(ship.id, target.id, weapon.damage, weapon.id);
 
-                    _scene.Broadcast("ship.usedSkill", new ShipDamageMsg { shipId = target.id, origin = ship.id, pvLost = weapon.damage });
                     if (target.currentPv <= 0)
                     {
                         target.UpdateStatus(ShipStatus.Dead, env.Clock);
-                        _scene.Broadcast("status.changed", new StatusChangedMsg { shipId = target.id, status = target.Status });
+                        _scene.BroadcastStatusChanged(target.id, target.Status);
+                     
                     }
                 }
             }
@@ -144,7 +145,7 @@ namespace Server
                                 //var nb = 0;
                                 foreach (var ship in _ships.Values.ToArray())
                                 {
-                                    if (ship.PositionUpdatedOn > lastRun && ship.Status != ShipStatus.Dead)
+                                    if (ship.PositionUpdatedOn > lastRun && ship.Status == ShipStatus.InGame)
                                     {
                                         using(var writer = new BinaryWriter(s, Encoding.UTF8, true))
                                         {
@@ -213,8 +214,8 @@ namespace Server
             ship.PositionUpdatedOn = clock;
 
             ship.Status = ShipStatus.InGame;
-
-            _scene.Broadcast("status.changed", new StatusChangedMsg { shipId = ship.id, status = ship.Status });
+            _scene.BroadcastStatusChanged(ship.id, ship.Status);
+            _scene.Broadcast("ship.statusChanged", new StatusChangedMsg { shipId = ship.id, status = ship.Status });
         }
 
         public class ReceivedDataMetrics
@@ -343,7 +344,7 @@ namespace Server
 
                 var dto = new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons };
                 client.Send("ship.me", s => client.Serializer().Serialize(dto, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-
+                _scene.BroadcastStatusChanged(ship.id, ship.Status);
                 var peersBySerializer = _scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
 
                 foreach (var group in peersBySerializer)
@@ -392,6 +393,20 @@ namespace Server
                 weapons = new Weapon[] { new Weapon { id = "canon", damage = 10, precision = 0.4f, coolDown =1500, range = 20 }/*, new Weapon { id = "missile", damage = 40, precision = 0.6f, coolDown = 3 }*/ }
             };
             return ship;
+        }
+    }
+
+
+    public static class SceneExtensions
+    {
+        public static void BroadcastStatusChanged(this ISceneHost scene, ushort shipId, ShipStatus status)
+        {
+            scene.Broadcast("ship.statusChanged", new StatusChangedMsg { shipId = shipId, status = status });
+        }
+
+        public static void BroadcastUsedSkill(this ISceneHost scene, ushort shipId, ushort target, int pvLost, string weaponId)
+        {
+            scene.Broadcast("ship.usedSkill", new ShipDamageMsg { shipId = target, origin = shipId, pvLost = pvLost, weaponId = weaponId });
         }
     }
 }

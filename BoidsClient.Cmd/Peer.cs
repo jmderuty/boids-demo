@@ -15,6 +15,7 @@ namespace BoidsClient.Cmd
     {
         private Simulation _simulation;
         private ushort id;
+        private ShipStatus shipStatus = ShipStatus.Waiting;
         private bool _isRunning;
         private TimeSpan interval = TimeSpan.FromMilliseconds(200);
         private static int boidFrameSize = 2 + 3 * 4 + 4 + 4;
@@ -71,13 +72,33 @@ namespace BoidsClient.Cmd
             scene.AddRoute("ship.remove", OnShipRemoved);
             scene.AddRoute("ship.add", OnShipAdded);
             scene.AddRoute("ship.me", OnGetMyShipInfos);
-
+            scene.AddRoute("ship.statusChanged", OnShipStatusChanged);
+            scene.AddRoute("ship.usedSkill", OnShipUsedSkill);
             await scene.Connect();
 
             _scene = scene;
             _offset = (uint)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) % uint.MaxValue;
             _clock.Start();
             IsRunning = true;
+        }
+
+        private void OnShipUsedSkill(Packet<IScenePeer> obj)
+        {
+            //We don't care
+        }
+
+        private void OnShipStatusChanged(Packet<IScenePeer> obj)
+        {
+            var statusChangedArgs = obj.ReadObject<StatusChangedMsg>();
+            if (statusChangedArgs.shipId != this.id)
+            {
+                _simulation.Environment.VisibleShips[statusChangedArgs.shipId].Status = (ShipStatus)statusChangedArgs.status;
+            }
+            else
+            {
+                shipStatus = (ShipStatus)statusChangedArgs.status;
+            }
+            //Update ship status for AI.
         }
 
 
@@ -94,7 +115,7 @@ namespace BoidsClient.Cmd
             watch.Start();
             var current = DateTime.UtcNow;
 
-            if (_simulation != null)
+            if (_simulation != null && shipStatus == ShipStatus.InGame)
             {
                 using (var writer = new BinaryWriter(new MemoryStream(_buffer)))
                 {
@@ -181,6 +202,12 @@ namespace BoidsClient.Cmd
                         if (id != this.id)
                         {
                             _simulation.Environment.UpdateShipLocation(id, x, y, rot);
+                        }
+                        else if (shipStatus != ShipStatus.InGame)
+                        {
+                            _simulation.Boid.X = x;
+                            _simulation.Boid.Y = y;
+                            _simulation.Boid.Rot = rot;
                         }
                     }
                 }

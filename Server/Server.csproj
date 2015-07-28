@@ -109,8 +109,8 @@
     <Content Include="bin\Stormancer.Management.Client.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Assets\Admin\admintest\" />
-    <Folder Include="Assets\Public\admintest\" />
+    <Folder Include="Assets\Admin\" />
+    <Folder Include="Assets\Public\Viewer\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -8,6 +8,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Reactive.Linq;
+using System.Linq;
 
 namespace BoidsClient.Cmd
 {
@@ -34,6 +36,7 @@ namespace BoidsClient.Cmd
             _accountId = accountId;
             _sceneId = sceneId;
             _apiEndpoint = apiEndpoint;
+            _simulation = new Simulation();
         }
 
         public Task Start()
@@ -65,7 +68,8 @@ namespace BoidsClient.Cmd
             config.ServerEndpoint = _apiEndpoint;
             //config.Logger = new Logger();
             _client = new Stormancer.Client(config);
-
+            _simulation.Boid.Clock = () => _client.Clock;
+            _simulation.Boid.Fire = async (target, w) => await _scene.Rpc<UserSkillRequest, UseSkillResponse>("skill", new UserSkillRequest { skillId = w.id, target = target.Id });
             var scene = await _client.GetPublicScene(sceneName, new PlayersInfos { isObserver = false });
 
             scene.AddRoute("position.update", OnPositionUpdate);
@@ -150,11 +154,16 @@ namespace BoidsClient.Cmd
             var dto = obj.ReadObject<ShipCreatedDto>();
             Console.WriteLine("[" + _name + "] Ship infos received : {0}", dto.id);
             id = dto.id;
-            _simulation = new Simulation(dto.x, dto.y, dto.rot);
+            _simulation.Boid.Id = id;
+            _simulation.Boid.X = dto.x;
+            _simulation.Boid.Y = dto.y;
+            _simulation.Boid.Rot = dto.rot;//= new Simulation(dto.x, dto.y, dto.rot);
+            _simulation.Boid.Weapons = dto.weapons.ToList();
         }
 
         private void OnShipAdded(Packet<IScenePeer> obj)
         {
+            
             if (_simulation != null)
             {
                 var shipInfos = obj.ReadObject<ShipCreatedDto>();

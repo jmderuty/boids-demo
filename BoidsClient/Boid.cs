@@ -10,13 +10,11 @@ namespace BoidsClient
     public class Boid
     {
 
-        public Boid(float x, float y, float rot)
+        public Boid()
         {
-            X = x;
-            Y = y;
-            Rot = rot;
+          
         }
-
+        public ushort Id { get; set; }
         public float X { get;  set; }
         public float Y { get;  set; }
         public float Rot { get;  set; }
@@ -109,7 +107,16 @@ namespace BoidsClient
 
                if(target != null)
                {
-                   Fire(target, w);
+                   Fire(target, w).ContinueWith(t=>{
+                       if(t.IsFaulted)
+                       {
+                           Console.WriteLine("{0} --FAILED -->{1}", Id, target.Id);
+                       }
+                       else
+                       {
+                           Console.WriteLine("{0} --       --> {2}", Id, target.Id);
+                       }
+                   });
                }
            }
         }
@@ -126,7 +133,7 @@ namespace BoidsClient
 
         public Func<long> Clock;
 
-        public Func<Ship, Weapon, Task> Fire;
+        public Func<Ship, Weapon, Task<UseSkillResponse>> Fire;
 
         private void CheckSpeed()
         {

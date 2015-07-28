@@ -8,7 +8,7 @@ namespace Server
 {
     public class UserSkillRequest
     {
-        internal ushort target;
+        public ushort target;
 
         public string skillId { get; set; }
     }

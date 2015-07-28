@@ -344,7 +344,7 @@ namespace Server
 
                 var dto = new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons };
                 client.Send("ship.me", s => client.Serializer().Serialize(dto, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-                _scene.BroadcastStatusChanged(ship.id, ship.Status);
+               
                 var peersBySerializer = _scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
 
                 foreach (var group in peersBySerializer)
@@ -354,7 +354,10 @@ namespace Server
                             group.First().Serializer().Serialize(dto, s);
                         }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
                 }
+                await Task.Delay(1000);
+                _scene.BroadcastStatusChanged(ship.id, ship.Status);
             }
+            
             _scene.GetComponent<ILogger>().Info("gameScene", "Added ship");
             StartUpdateLoop();
         }

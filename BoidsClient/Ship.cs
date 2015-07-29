@@ -24,6 +24,10 @@ namespace BoidsClient
     }
 
 
+    
+}
+namespace  Server
+{
     public enum ShipStatus
     {
         Waiting,

@@ -1,7 +1,7 @@
 var debug = false;
 
 var accountId = "997bc6ac-9021-2ad6-139b-da63edee8c58";
-var applicationName = "boids";
+var applicationName = "boids-test";
 var sceneName = "main";
 
 var deltaReceiveAvg = new Average();

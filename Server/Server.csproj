@@ -81,6 +81,9 @@
   <ItemGroup>
     <Compile Include="App.cs" />
     <Compile Include="GameScene.cs" />
+    <Compile Include="Leaderboards\ILeaderboard.cs" />
+    <Compile Include="Leaderboards\Leaderboard.cs" />
+    <Compile Include="Leaderboards\LeaderBoardPlugin.cs" />
     <Compile Include="Management\ManagementPlugin.cs" />
     <Compile Include="Matchmaking\MatchmakingBuilder.cs" />
     <Compile Include="Matchmaking\MatchMakingExtensions.cs" />

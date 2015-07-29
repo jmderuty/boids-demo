@@ -21,6 +21,7 @@ namespace BoidsClient.Cmd
         private bool _isRunning;
         private TimeSpan interval = TimeSpan.FromMilliseconds(200);
         private static int boidFrameSize = 22;
+        private bool _isReady = false;
 
         private readonly string _name;
 
@@ -94,18 +95,22 @@ namespace BoidsClient.Cmd
 
         private void OnShipStatusChanged(Packet<IScenePeer> obj)
         {
-            var statusChangedArgs = obj.ReadObject<StatusChangedMsg>();
-            if (statusChangedArgs.shipId != this.id)
+            if (_isReady)
             {
-                _simulation.Environment.VisibleShips[statusChangedArgs.shipId].Status = (ShipStatus)statusChangedArgs.status;
+
+                var statusChangedArgs = obj.ReadObject<StatusChangedMsg>();
+                if (statusChangedArgs.shipId != this.id)
+                {
+                    _simulation.Environment.VisibleShips[statusChangedArgs.shipId].Status = (ShipStatus)statusChangedArgs.status;
+                }
+                else
+                {
+                    _simulation.Boid.Status = statusChangedArgs.status;
+
+                    Console.WriteLine("Ship {0} changed status to {1}", id, _simulation.Boid.Status);
+                }
             }
-            else
-            {
-                _simulation.Boid.Status = statusChangedArgs.status;
-               
-                Console.WriteLine("Ship {0} changed status to {1}", id, _simulation.Boid.Status);
-            }
-            //Update ship status for AI.
+            
         }
 
 
@@ -166,12 +171,13 @@ namespace BoidsClient.Cmd
             _simulation.Boid.Y = dto.y;
             _simulation.Boid.Rot = dto.rot;//= new Simulation(dto.x, dto.y, dto.rot);
             _simulation.Boid.Weapons = dto.weapons.ToList();
+            _isReady = true;
         }
 
         private void OnShipAdded(Packet<IScenePeer> obj)
         {
             
-            if (_simulation != null)
+            if (_simulation != null && _isReady)
             {
                 while (obj.Stream.Position != obj.Stream.Length)
                 {

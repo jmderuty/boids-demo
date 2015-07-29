@@ -8,7 +8,7 @@ namespace Server
 {
     public class UserSkillRequest
     {
-        internal ushort target;
+        public ushort target;
 
         public string skillId { get; set; }
     }
@@ -16,7 +16,7 @@ namespace Server
     public class UseSkillResponse
     {
         public long skillUpTimestamp;
-        
+        public bool success;
     }
 
     public class DamageMsg

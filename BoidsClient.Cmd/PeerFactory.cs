@@ -11,11 +11,11 @@ namespace BoidsClient.Cmd
     public class PeerProxy : MarshalByRefObject
     {
         private Peer _peer;
-        public async Task Start(string name, string apiEndpoint,string accountId, string app, string scene)
+        public async Task Start(string name, string apiEndpoint,string accountId, string app, string scene, bool canAttack)
         {
             try
             {
-                _peer = new Peer(name,apiEndpoint, accountId, app, scene);
+                _peer = new Peer(name,apiEndpoint, accountId, app, scene,canAttack);
                 _peer.Stopped = () =>{
                     var stopped = Stopped;
                     if(stopped !=null)

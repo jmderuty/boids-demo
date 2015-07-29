@@ -8,6 +8,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Reactive.Linq;
+using System.Linq;
 
 namespace BoidsClient.Cmd
 {
@@ -15,10 +17,10 @@ namespace BoidsClient.Cmd
     {
         private Simulation _simulation;
         private ushort id;
-        private ShipStatus shipStatus = ShipStatus.Waiting;
+       
         private bool _isRunning;
         private TimeSpan interval = TimeSpan.FromMilliseconds(200);
-        private static int boidFrameSize = 2 + 3 * 4 + 4 + 4;
+        private static int boidFrameSize = 22;
 
         private readonly string _name;
 
@@ -27,13 +29,15 @@ namespace BoidsClient.Cmd
         private string _sceneId;
         private string _apiEndpoint;
         private Client _client;
-        public Peer(string name, string apiEndpoint, string accountId, string appName, string sceneId)
+        public Peer(string name, string apiEndpoint, string accountId, string appName, string sceneId, bool canAttack)
         {
             _name = name;
             _app = appName;
             _accountId = accountId;
             _sceneId = sceneId;
             _apiEndpoint = apiEndpoint;
+            _simulation = new Simulation();
+            _simulation.Boid.CanAttack = canAttack;
         }
 
         public Task Start()
@@ -65,7 +69,8 @@ namespace BoidsClient.Cmd
             config.ServerEndpoint = _apiEndpoint;
             //config.Logger = new Logger();
             _client = new Stormancer.Client(config);
-
+            _simulation.Boid.Clock = () => _client.Clock;
+            _simulation.Boid.Fire = async (target, w) => (await _scene.RpcTask<UserSkillRequest, UseSkillResponse>("skill", new UserSkillRequest { skillId = w.id, target = target.Id }));
             var scene = await _client.GetPublicScene(sceneName, new PlayersInfos { isObserver = false });
 
             scene.AddRoute("position.update", OnPositionUpdate);
@@ -96,7 +101,9 @@ namespace BoidsClient.Cmd
             }
             else
             {
-                shipStatus = (ShipStatus)statusChangedArgs.status;
+                _simulation.Boid.Status = statusChangedArgs.status;
+               
+                Console.WriteLine("Ship {0} changed status to {1}", id, _simulation.Boid.Status);
             }
             //Update ship status for AI.
         }
@@ -115,23 +122,27 @@ namespace BoidsClient.Cmd
             watch.Start();
             var current = DateTime.UtcNow;
 
-            if (_simulation != null && shipStatus == ShipStatus.InGame)
+            if (_simulation != null)
             {
-                using (var writer = new BinaryWriter(new MemoryStream(_buffer)))
+                long tSend = watch.ElapsedMilliseconds;
+                if (_simulation.Boid.Status == ShipStatus.InGame)
                 {
-                    writer.Write(id);
-                    writer.Write(_simulation.Boid.X);
-                    writer.Write(_simulation.Boid.Y);
-                    writer.Write(_simulation.Boid.Rot);
-                    writer.Write(_client.Clock);
+                    using (var writer = new BinaryWriter(new MemoryStream(_buffer)))
+                    {
+                        writer.Write(id);
+                        writer.Write(_simulation.Boid.X);
+                        writer.Write(_simulation.Boid.Y);
+                        writer.Write(_simulation.Boid.Rot);
+                        writer.Write(_client.Clock);
 
+                    }
+                    var tWrite = watch.ElapsedMilliseconds;
+                    Metrics.Instance.GetRepository("write").AddSample(id, tWrite);
+                    _scene.SendPacket("position.update", s => s.Write(_buffer, 0, boidFrameSize), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+
+                    tSend = watch.ElapsedMilliseconds;
+                    Metrics.Instance.GetRepository("send").AddSample(id, tSend - tWrite);
                 }
-                var tWrite = watch.ElapsedMilliseconds;
-                Metrics.Instance.GetRepository("write").AddSample(id, tWrite);
-                _scene.SendPacket("position.update", s => s.Write(_buffer, 0, boidFrameSize), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
-
-                var tSend = watch.ElapsedMilliseconds;
-                Metrics.Instance.GetRepository("send").AddSample(id, tSend - tWrite);
                 lock (_simulation.Environment)
                 {
                     _simulation.Step();
@@ -150,11 +161,16 @@ namespace BoidsClient.Cmd
             var dto = obj.ReadObject<ShipCreatedDto>();
             Console.WriteLine("[" + _name + "] Ship infos received : {0}", dto.id);
             id = dto.id;
-            _simulation = new Simulation(dto.x, dto.y, dto.rot);
+            _simulation.Boid.Id = id;
+            _simulation.Boid.X = dto.x;
+            _simulation.Boid.Y = dto.y;
+            _simulation.Boid.Rot = dto.rot;//= new Simulation(dto.x, dto.y, dto.rot);
+            _simulation.Boid.Weapons = dto.weapons.ToList();
         }
 
         private void OnShipAdded(Packet<IScenePeer> obj)
         {
+            
             if (_simulation != null)
             {
                 var shipInfos = obj.ReadObject<ShipCreatedDto>();
@@ -189,21 +205,20 @@ namespace BoidsClient.Cmd
             {
                 using (var reader = new BinaryReader(obj.Stream))
                 {
-                    reader.ReadByte();
-                    var serverTime = reader.ReadUInt32();
+                   
                     while (reader.BaseStream.Length - reader.BaseStream.Position >= boidFrameSize)
                     {
                         var id = reader.ReadUInt16();
                         var x = reader.ReadSingle();
                         var y = reader.ReadSingle();
                         var rot = reader.ReadSingle();
-                        var time = reader.ReadUInt32();
+                        var time = reader.ReadInt64();
 
                         if (id != this.id)
                         {
                             _simulation.Environment.UpdateShipLocation(id, x, y, rot);
                         }
-                        else if (shipStatus != ShipStatus.InGame)
+                        else if (_simulation.Boid.Status != ShipStatus.InGame)
                         {
                             _simulation.Boid.X = x;
                             _simulation.Boid.Y = y;

@@ -1,9 +1,16 @@
-﻿using System;
+﻿using Stormancer.Core;
+using Stormancer.Server.Components;
+using System;
 
 namespace Server
 {
     internal class Ship
     {
+        private ISceneHost _scene;
+        public Ship(ISceneHost scene)
+        {
+            _scene = scene;
+        }
         public Player player;
         public ushort id;
 
@@ -13,20 +20,39 @@ namespace Server
         public float rot;
 
         public int currentPv;
+
+        public void ChangePv(int diff)
+        {
+            currentPv += diff;
+            _scene.BroadcastPvUpdate(this.id, diff);
+            if(currentPv <= 0)
+            {
+                UpdateStatus(ShipStatus.Dead);
+            }
+            else
+            {
+                UpdateStatus(ShipStatus.InGame);
+            }
+        }
         public int maxPv;
 
         public ushort team;
 
         public Weapon[] weapons { get; set; }
-     
+
         public long PositionUpdatedOn { get; internal set; }
 
         public long lastStatusUpdate { get; set; }
 
-        public void UpdateStatus(ShipStatus newStatus, long timestamp)
+        public void UpdateStatus(ShipStatus newStatus)
         {
-            Status = newStatus;
-            lastStatusUpdate = timestamp;
+            if (newStatus != Status)
+            {
+                Status = newStatus;
+
+                lastStatusUpdate = _scene.GetComponent<IEnvironment>().Clock;
+                _scene.BroadcastStatusChanged(this.id, this.Status);
+            }
         }
         public ShipStatus Status { get; set; }
     }

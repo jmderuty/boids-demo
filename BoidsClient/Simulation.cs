@@ -8,9 +8,9 @@ namespace BoidsClient
 {
     public class Simulation
     {
-        public Simulation(float x, float y, float rot)
+        public Simulation()
         {
-            Boid = new Boid(x, y, rot);
+            Boid = new Boid();
             Environment = new Environment();
         }
 

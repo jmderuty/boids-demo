@@ -73,7 +73,7 @@ namespace BoidsClient.Worker
             }
             //AppDomain.Unload(peer.Domain);
         }
-
+     
         private async Task AddInstance()
         {
             var name = "peer" + i++;
@@ -91,7 +91,9 @@ namespace BoidsClient.Worker
             {
                 _peers.Remove(peer);
             };
-            await proxy.Start(name,_apiEndpoint, _accountId, _app, _sceneId);
+            
+            await proxy.Start(name,_apiEndpoint, _accountId, _app, _sceneId,true);
+          
         }
 
         public void RunPeers(int delay, CancellationToken ct)

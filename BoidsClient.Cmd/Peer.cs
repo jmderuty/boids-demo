@@ -173,14 +173,17 @@ namespace BoidsClient.Cmd
             
             if (_simulation != null)
             {
-                var shipInfos = obj.ReadObject<ShipCreatedDto>();
-                if (shipInfos.id != this.id)
+                while (obj.Stream.Position != obj.Stream.Length)
                 {
-                    var ship = new Ship { Id = shipInfos.id, Team = shipInfos.team, X = shipInfos.x, Y = shipInfos.y, Rot = shipInfos.rot, Weapons = shipInfos.weapons };
-                    Console.WriteLine("[" + _name + "] Ship {0} added ", shipInfos.id);
-                    lock (_simulation.Environment)
+                    var shipInfos = obj.ReadObject<ShipCreatedDto>();
+                    if (shipInfos.id != this.id)
                     {
-                        _simulation.Environment.AddShip(ship);
+                        var ship = new Ship { Id = shipInfos.id, Team = shipInfos.team, X = shipInfos.x, Y = shipInfos.y, Rot = shipInfos.rot, Weapons = shipInfos.weapons };
+                        Console.WriteLine("[" + _name + "] Ship {0} added ", shipInfos.id);
+                        lock (_simulation.Environment)
+                        {
+                            _simulation.Environment.AddShip(ship);
+                        }
                     }
                 }
             }

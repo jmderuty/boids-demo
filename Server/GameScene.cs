@@ -82,7 +82,7 @@ namespace Server
             }
 
             var target = _ships[p.target];
-            if(target.Status != ShipStatus.InGame)
+            if (target.Status != ShipStatus.InGame)
             {
                 throw new ClientException("Can only use skills on ships that are in game.");
             }
@@ -92,7 +92,7 @@ namespace Server
             {
                 throw new ClientException("Target out of range.");
             }
-            
+
             weapon.fireTimestamp = timestamp;
             var success = _rand.Next(100) < weapon.precision * 100;
             if (success)
@@ -100,11 +100,11 @@ namespace Server
                 if (target.currentPv > 0)
                 {
                     target.ChangePv(-weapon.damage);
-                   
+
 
                 }
             }
-      
+
             _scene.BroadcastUsedSkill(ship.id, target.id, success, weapon.id);
             arg.SendValue(new UseSkillResponse { skillUpTimestamp = weapon.fireTimestamp + weapon.coolDown, success = success });
         }
@@ -202,7 +202,7 @@ namespace Server
 
             foreach (var ship in _ships.Values.ToArray())
             {
-                
+
                 if (ship.Status == ShipStatus.Dead && ship.lastStatusUpdate + 2000 < clock)
                 {
                     ReviveShip(ship);
@@ -216,8 +216,8 @@ namespace Server
             ship.x = X_MIN + (float)(_rand.NextDouble() * (X_MAX - X_MIN));
             ship.y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN));
             ship.PositionUpdatedOn = clock;
-            ship.ChangePv(ship.maxPv-ship.currentPv);
-            
+            ship.ChangePv(ship.maxPv - ship.currentPv);
+
 
         }
 
@@ -339,13 +339,14 @@ namespace Server
             var player = new Player(pInfos, client.Id);
 
             _players.AddOrUpdate(client.Id, player, (id, old) => player);
+            Ship ship = null;
             if (!player.IsObserver)
             {
-                var ship = CreateShip(player);
+                ship = CreateShip(player);
 
                 _ships.AddOrUpdate(ship.id, ship, (id, old) => ship);
 
-                var dto = new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons };
+                var dto = new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status };
                 client.Send("ship.me", s => client.Serializer().Serialize(dto, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 
                 var peersBySerializer = _scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
@@ -357,10 +358,26 @@ namespace Server
                             group.First().Serializer().Serialize(dto, s);
                         }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
                 }
+
+
+            }
+            client.Send("ship.add", stream =>
+               {
+                   foreach (var s in _ships.Values.ToArray())
+                   {
+                       var dto = new ShipCreatedDto { id = s.id, team = s.team, x = s.x, y = s.y, rot = s.rot, weapons = s.weapons, status = s.Status };
+
+                       client.Serializer().Serialize(dto, stream);
+
+
+                   }
+               }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+
+            if (ship != null)
+            {
                 await Task.Delay(1000);
                 ship.UpdateStatus(ShipStatus.InGame);
             }
-
             _scene.GetComponent<ILogger>().Info("gameScene", "Added ship");
             StartUpdateLoop();
         }

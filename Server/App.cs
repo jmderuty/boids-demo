@@ -13,8 +13,10 @@ namespace Server
         {
             builder.AddGameScene();
 
-            var admin = builder.AdminPlugin("viewer", Stormancer.Server.Admin.AdminPluginHostVersion.V0_1).Name("Viewer");
-            //admin.Get["/"] = ctx => "helloworld";
+            var admintest = builder.AdminPlugin("admintest", Stormancer.Server.Admin.AdminPluginHostVersion.V0_1).Name("admintest");
+            //admintest.Get["/"] = ctx => "helloworld";
+
+            var viewer = builder.AdminPlugin("viewer", Stormancer.Server.Admin.AdminPluginHostVersion.V0_1).Name("Viewer");
         }
     }
 }

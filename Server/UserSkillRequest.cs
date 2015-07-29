@@ -16,7 +16,7 @@ namespace Server
     public class UseSkillResponse
     {
         public long skillUpTimestamp;
-        
+        public bool success;
     }
 
     public class DamageMsg

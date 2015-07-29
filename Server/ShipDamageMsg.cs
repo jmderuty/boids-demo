@@ -1,10 +1,10 @@
 ﻿namespace Server
 {
-    public class ShipDamageMsg
+    public class UsedSkillMsg
     {
         public ushort shipId;
 
-        public int pvLost { get; set; }
+        public bool success { get; set; }
 
         public ushort origin { get; set; }
 

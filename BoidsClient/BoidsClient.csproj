@@ -76,6 +76,9 @@
     <Compile Include="..\Server\ShipCreatedDto.cs">
       <Link>ShipCreatedDto.cs</Link>
     </Compile>
+    <Compile Include="..\Server\ShipDamageMsg.cs">
+      <Link>ShipDamageMsg.cs</Link>
+    </Compile>
     <Compile Include="..\Server\UserSkillRequest.cs">
       <Link>UserSkillRequest.cs</Link>
     </Compile>

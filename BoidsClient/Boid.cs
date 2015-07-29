@@ -12,12 +12,15 @@ namespace BoidsClient
 
         public Boid()
         {
-          
+
         }
         public ushort Id { get; set; }
-        public float X { get;  set; }
-        public float Y { get;  set; }
-        public float Rot { get;  set; }
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Rot { get; set; }
+
+        public bool CanAttack { get; set; }
+        public ShipStatus Status { get; set; }
         //Vitesse max (m/s);
         private float speed = 15;
         //Vitesse de rotation max (rad/s)
@@ -84,41 +87,48 @@ namespace BoidsClient
         /// <param name="environment">Environment of the boid.</param>
         public void Step(float dt, Environment environment)
         {
-            
-            Flock(environment.VisibleShips.Values);
+            if (this.Status == ShipStatus.InGame)
+            {
+                Flock(environment.VisibleShips.Values);
 
-            CheckSpeed();
+                CheckSpeed();
 
-            Rot += dr;
-            var dx = (float)Math.Cos(Rot) * speed * dt;
-            var dy = (float)Math.Sin(Rot) * speed * dt;
-            X += dx;
-            Y += dy;
-
-            Fight(environment.VisibleShips.Values);
+                Rot += dr;
+                var dx = (float)Math.Cos(Rot) * speed * dt;
+                var dy = (float)Math.Sin(Rot) * speed * dt;
+                X += dx;
+                Y += dy;
+                if (CanAttack)
+                {
+                    Fight(environment.VisibleShips.Values);
+                }
+            }
         }
 
         private void Fight(IEnumerable<Ship> ships)
         {
             var q = from weapon in Weapons where isAvailable(weapon) select weapon;
-           foreach(var w in q)
-           {
-               var target = ships.FirstOrDefault(s => AtRange(s, w));
+            foreach (var w in q)
+            {
+                var target = ships.FirstOrDefault(s => AtRange(s, w));
 
-               if(target != null)
-               {
-                   Fire(target, w).ContinueWith(t=>{
-                       if(t.IsFaulted)
-                       {
-                           Console.WriteLine("{0} --FAILED -->{1}", Id, target.Id);
-                       }
-                       else
-                       {
-                           Console.WriteLine("{0} --       --> {2}", Id, target.Id);
-                       }
-                   });
-               }
-           }
+                if (target != null)
+                {
+                    Fire(target, w).ContinueWith(t =>
+                    {
+                        if (t.IsFaulted)
+                        {
+                            Console.WriteLine("{0} -- ERROR -->{1}", Id, target.Id);
+                            w.fireTimestamp += 100;//Make sur that we will retry in more than 100ms.
+                        }
+                        else
+                        {
+                            Console.WriteLine("{0} --  {2}  --> {1}", Id, target.Id, t.Result.success ? ">" : "x");
+                            w.fireTimestamp = Clock();
+                        }
+                    });
+                }
+            }
         }
 
         private bool isAvailable(Weapon weapon)
@@ -128,7 +138,7 @@ namespace BoidsClient
 
         private bool AtRange(Ship ship, Weapon weapon)
         {
-            return (ship.X - X) * (ship.X - X) + (ship.Y - Y) * (ship.Y - Y) < weapon.range * weapon.range;
+            return ship.Status == ShipStatus.InGame && (ship.X - X) * (ship.X - X) + (ship.Y - Y) * (ship.Y - Y) < weapon.range * weapon.range;
         }
 
         public Func<long> Clock;

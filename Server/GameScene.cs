@@ -31,7 +31,6 @@ namespace Server
         private const float Y_MIN = -100;
         private const float Y_MAX = 100;
 
-        private byte packetId = 0;
         private readonly ISceneHost _scene;
         private ushort _currentId = 0;
         private ConcurrentDictionary<long, Player> _players = new ConcurrentDictionary<long, Player>();
@@ -401,7 +400,6 @@ namespace Server
                 id = _currentId++;
             }
             player.ShipId = id;
-            var pv = 50;
             var ship = new Ship(this._scene)
             {
                 Status = ShipStatus.Waiting,

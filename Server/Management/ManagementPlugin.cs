@@ -28,8 +28,6 @@ namespace Server.Management
 
     public class ManagementClientAccessor
     {
-        
-        private ApplicationClient _appClient;
         public ManagementClientAccessor(IEnvironment environment)
         {
             

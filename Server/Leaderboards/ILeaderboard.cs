@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Server.Leaderboards
 {
-    public interface ILeaderboard
+    public interface ILeaderboardsService
     {
     }
 }

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Server.Database;
 
 namespace Server.Leaderboards
 {
@@ -14,7 +15,7 @@ namespace Server.Leaderboards
         {
             ctx.SceneCreating += scene =>
             {
-                scene.RegisterComponent<ILeaderboard>(() => new Leaderboard());
+                scene.RegisterComponent<ILeaderboardsService>(() => new LeaderboardsService(scene.GetComponent<IESClientFactory>()));
             };
         }
     }

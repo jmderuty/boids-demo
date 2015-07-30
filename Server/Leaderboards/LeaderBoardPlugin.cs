@@ -11,8 +11,14 @@ namespace Server.Leaderboards
 {
     class LeaderBoardPlugin : IHostPlugin
     {
+        
+        public LeaderBoardPlugin(IAppBuilder builder)
+        {
+            builder.AdminPlugin("leaderboard", Stormancer.Server.Admin.AdminPluginHostVersion.V0_1).Name("Leaderboard");
+        }
         public void Build(HostPluginBuildContext ctx)
         {
+            
             ctx.SceneCreating += scene =>
             {
                 scene.RegisterComponent<ILeaderboardsService>(() => new LeaderboardsService(scene.GetComponent<IESClientFactory>()));
@@ -24,7 +30,8 @@ namespace Server.Leaderboards
     {
         public void Run(IAppBuilder builder)
         {
-            builder.AddPlugin(new LeaderBoardPlugin());
+            builder.AddPlugin(new LeaderBoardPlugin(builder));
+            
         }
     }
 }

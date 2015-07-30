@@ -17,6 +17,7 @@ namespace Server
             //admintest.Get["/"] = ctx => "helloworld";
 
             var viewer = builder.AdminPlugin("viewer", Stormancer.Server.Admin.AdminPluginHostVersion.V0_1).Name("Viewer");
+            
         }
     }
 }

@@ -97,8 +97,8 @@
     <Compile Include="Database\ESClientFactory.cs" />
     <Compile Include="GameScene.cs" />
     <Compile Include="Leaderboards\ILeaderboard.cs" />
+    <Compile Include="Leaderboards\LeaderboardService.cs" />
     <Compile Include="Leaderboards\Leaderboard.cs" />
-    <Compile Include="Leaderboards\Leaderboard1.cs" />
     <Compile Include="Leaderboards\LeaderboardEntry.cs" />
     <Compile Include="Leaderboards\LeaderBoardPlugin.cs" />
     <Compile Include="Management\ManagementPlugin.cs" />

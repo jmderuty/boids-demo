@@ -1,80 +1,112 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Nest;
 using Server.Database;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Server.Leaderboards
 {
-    class LeaderboardsService : ILeaderboardsService
+    /// <summary>
+    /// A leaderboard object
+    /// </summary>
+    public class Leaderboard
     {
-        private IESClientFactory _factory;
-        private string index = "leaderboards";
-        public LeaderboardsService(IESClientFactory esFactory)
+        private IElasticClient _client;
+        internal Leaderboard(LeaderboardRecord record, IElasticClient client)
         {
-            _factory = esFactory;
+            _client = client;
+            Name = record.Name;
+            Description = record.Description;
         }
 
-        public async Task<IEnumerable<Leaderboard>> ListLeaderboards()
-        {
-            var client = await _factory.CreateClient(index);
-            var results = await client.SearchAsync<LeaderboardRecord>(sd => sd);
+        public string Name { get; private set; }
 
+        public string Description { get; private set; }
+
+        public async Task SetScore(string userId, string username, int value)
+        {
+            var result = await _client.IndexAsync(new ScoreRecord
+            {
+                Id = this.Name + "-" + userId,
+                leaderboard = this.Name,
+                score = value,
+                UserId = userId,
+                Username = username
+            });
+
+            if (!result.IsValid)
+            {
+                throw new InvalidOperationException(string.Format("Failed to perform SetScore query : '{0}'", result.ServerError));
+            }
+        }
+
+        public async Task IncrementScore(string userId,string username, int diff)
+        {
+            var result = await _client.UpdateAsync<ScoreRecord>(ud => ud.Script("ctx._source.score+=" + diff).Id(this.Name + "-" + userId));
+            if (!result.IsValid)
+            {
+                await SetScore(userId, username, diff);
+                
+            }
+          
+        }
+
+        public async Task<Score> GetScore(string userId)
+        {
+            var result = await _client.GetAsync<ScoreRecord>(this.Name + "-" + userId);
+
+            if (!result.IsValid)
+            {
+                throw new InvalidOperationException(string.Format("Failed to perform GetScore query : '{0}'", result.ServerError));
+            }
+            else
+            {
+                return new Score(result.Source);
+            }
+        }
+
+        public async Task<IEnumerable<Score>> GetScores(int skip, int take)
+        {
+            var results = await _client.SearchAsync<ScoreRecord>(sd => sd
+                .Filter(f => f.Term(s => s.leaderboard, this.Name))
+                .SortDescending(s => s.score)
+                .Skip(skip)
+                .Take(take)
+                );
             if (!results.IsValid)
             {
-                throw new InvalidOperationException(string.Format("Failed to perform ListLeaderboards query : '{0}'", results.ServerError));
-            }
-
-            return results.Hits.Select(h => new Leaderboard(h.Source, client));
-        }
-
-        public async Task<Leaderboard> GetLeaderboard(string leaderboard)
-        {
-            var client = await _factory.CreateClient(index);
-            var result = await client.GetAsync<LeaderboardRecord>(sd => sd.Id(leaderboard));
-
-            if (!result.IsValid)
-            {
-                throw new InvalidOperationException(string.Format("Failed to perform GetLeaderboard query : '{0}'", result.ServerError));
+                throw new InvalidOperationException(string.Format("Failed to perform GetScores query : '{0}'", results.ServerError));
             }
             else
             {
-                return new Leaderboard(result.Source, client);
+                return results.Hits.Select(r => new Score(r.Source));
             }
         }
 
-        public async Task<Leaderboard> CreateOrUpdateLeaderboard(string leaderboard, string description)
+        public async Task DeleteScore(string userId)
         {
-            var client = await _factory.CreateClient(index);
-            var result = await client.IndexAsync(new LeaderboardRecord { Id = leaderboard, Description = description, Name = leaderboard });
-
+            var result = await _client.DeleteAsync(this.Name + "-" + userId);
             if (!result.IsValid)
             {
-                throw new InvalidOperationException(string.Format("Failed to perform CreateOrUpdateLeaderboard query : '{0}'", result.ServerError));
-            }
-            else
-            {
-                return await GetLeaderboard(leaderboard);
+                throw new InvalidOperationException(string.Format("Failed to perform DeleteScore query : '{0}'", result.ServerError));
             }
         }
+    }
 
-        public async Task DeleteLeaderboard(string leaderboard)
+    public class Score
+    {
+        internal Score(ScoreRecord record)
         {
-            var client = await _factory.CreateClient(index);
-            var result = await client.DeleteByQueryAsync<ScoreRecord>(ds => ds.Query(qd => qd.Term(s => s.leaderboard, leaderboard)));
-
-            if(!result.IsValid)
-            {
-                throw new InvalidOperationException(string.Format("Failed to perform DeleteLeaderboard query : '{0}'", result.ServerError));
-            }
-
-            result = await client.DeleteAsync<LeaderboardRecord>(ds => ds.Id(leaderboard));
-
-            if (!result.IsValid)
-            {
-                throw new InvalidOperationException(string.Format("Failed to perform DeleteLeaderboard query : '{0}'", result.ServerError));
-            }
+            Leaderboard = record.leaderboard;
+            Username = record.Username;
+            UserId = record.UserId;
+            Value = record.score;
         }
+        public string Leaderboard { get; private set; }
+        public string UserId { get; private set; }
+        public string Username { get; private set; }
+
+        public int Value { get; private set; }
     }
 }

@@ -11,11 +11,11 @@ namespace Server.Leaderboards
 {
     class LeaderBoardPlugin : IHostPlugin
     {
-        
         public LeaderBoardPlugin(IAppBuilder builder)
         {
             builder.AdminPlugin("leaderboard", Stormancer.Server.Admin.AdminPluginHostVersion.V0_1).Name("Leaderboard");
         }
+
         public void Build(HostPluginBuildContext ctx)
         {
             

@@ -1,11 +1,22 @@
 function LeaderboardGlobal() {
 	this.leaderboards = ko.observableArray();
 	this.selectedLeaderboard = ko.observable();
+
+	LeaderboardAPI.get().then(function(leaderboards) {
+		for (var i=0; i<3; i++)
+		{
+			var leaderboard = leaderboards[i];
+			leaderboardGlobalVM.leaderboards.push(new LeaderboardViewModel(leaderboard.id, leaderboard.name));
+		}
+	}).fail(function(e) {
+		console.log("leaderboard API get error:", e);
+	});
 }
 
-function LeaderboardViewModel(id)
+function LeaderboardViewModel(id, name)
 {
 	this.id = ko.observable(id || null);
+	this.name = ko.observable(name || "");
 	this.players = ko.observableArray();
 	this.players.subscribe(function(newValue) {
 		this.players().sort(sort2PlayersByScore);

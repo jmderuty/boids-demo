@@ -7,9 +7,9 @@ var LeaderboardAPI = {
 		return $.get("https://api.stormancer.com/"+accountId+"/"+applicationName+"/_admin/leaderboard/"+id+"/"+skip+"/"+take, {
 			contentType: "application/json",
 			dataType: "json",
-			headers: {
-				"x-token": xToken,
-				"x-version": "1.0"
+			beforeSend: function(xhr) {
+				xhr.setRequestHeader("x-token", xToken);
+				xhr.setRequestHeader("x-version", "1.0");
 			}
 		});
 	}

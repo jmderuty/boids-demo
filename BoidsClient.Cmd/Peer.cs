@@ -17,7 +17,7 @@ namespace BoidsClient.Cmd
     {
         private Simulation _simulation;
         private ushort id;
-       
+
         private bool _isRunning;
         private TimeSpan interval = TimeSpan.FromMilliseconds(200);
         private static int boidFrameSize = 22;
@@ -159,7 +159,13 @@ namespace BoidsClient.Cmd
 
         private void OnGetMyShipInfos(Packet<IScenePeer> obj)
         {
-            var dto = obj.ReadObject<ShipCreatedDto>();
+            var dtos = obj.ReadObject<ShipCreatedDto[]>();
+            if (dtos.Length != 1)
+            {
+                throw new InvalidDataException("Invalid number of dtos");
+            }
+
+            var dto = dtos[0];
             Console.WriteLine("[" + _name + "] Ship infos received : {0}", dto.id);
             id = dto.id;
             _simulation.Boid.Id = id;
@@ -177,7 +183,7 @@ namespace BoidsClient.Cmd
             {
                 var shipsToAdd = obj.ReadObject<ShipCreatedDto[]>();
                 //while (obj.Stream.Position != obj.Stream.Length)
-                for (var i=0; i<shipsToAdd.Length; i++)
+                for (var i = 0; i < shipsToAdd.Length; i++)
                 {
                     var shipInfos = shipsToAdd[i];
                     if (shipInfos.id != this.id)
@@ -212,7 +218,7 @@ namespace BoidsClient.Cmd
             {
                 using (var reader = new BinaryReader(obj.Stream))
                 {
-                   
+
                     while (reader.BaseStream.Length - reader.BaseStream.Position >= boidFrameSize)
                     {
                         var id = reader.ReadUInt16();

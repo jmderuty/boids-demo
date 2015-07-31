@@ -52,7 +52,7 @@ namespace Server.Leaderboards
           
         }
 
-        public async Task<Score> GetScore(string userId)
+        public async Task<ScoreDto> GetScore(string userId)
         {
             var result = await _client.GetAsync<ScoreRecord>(this.Name + "-" + userId);
 
@@ -62,11 +62,11 @@ namespace Server.Leaderboards
             }
             else
             {
-                return new Score(result.Source);
+                return new ScoreDto(result.Source);
             }
         }
 
-        public async Task<IEnumerable<Score>> GetScores(int skip, int take)
+        public async Task<IEnumerable<ScoreDto>> GetScores(int skip, int take)
         {
             var results = await _client.SearchAsync<ScoreRecord>(sd => sd
                 .Filter(f => f.Term(s => s.leaderboard, this.Name))
@@ -80,7 +80,7 @@ namespace Server.Leaderboards
             }
             else
             {
-                return results.Hits.Select(r => new Score(r.Source));
+                return results.Hits.Select(r => new ScoreDto(r.Source));
             }
         }
 
@@ -94,9 +94,9 @@ namespace Server.Leaderboards
         }
     }
 
-    public class Score
+    public class ScoreDto
     {
-        internal Score(ScoreRecord record)
+        internal ScoreDto(ScoreRecord record)
         {
             Leaderboard = record.leaderboard;
             Username = record.Username;

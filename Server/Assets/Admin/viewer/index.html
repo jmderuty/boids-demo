@@ -32,7 +32,7 @@
 			}
 		})();
 		var xToken = urlParams["x-token"];
-		var sceneName = urlParams["sceneName"];
+		var sceneName = urlParams["sceneName"] || "main";
 		document.cookie = "x-token="+encodeURIComponent(xToken);
 		var splitted = window.location.href.split('/');
 		var accountId = splitted[3];

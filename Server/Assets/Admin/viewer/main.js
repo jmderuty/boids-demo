@@ -132,8 +132,8 @@ function render()
 	ctx.translate(cameraPosition.x, cameraPosition.y);
 	if (debug)
 	{
-		drawOrigin();
-		drawBoidsAveragePoint();
+	drawOrigin();
+	drawBoidsAveragePoint();
 	}
 	var osz = objects.length;
 	for (var i=0; i<osz; )
@@ -196,8 +196,8 @@ function syncClock()
 	{
 		timer.elapsedTime = serverTime;
 		clockSet = true;
-		console.log("serverClock", timer.elapsedTime);
-	}
+	console.log("serverClock", timer.elapsedTime);
+}
 }
 
 function onBoidAdded(dataArray)
@@ -206,10 +206,10 @@ function onBoidAdded(dataArray)
 	for (var b = 0; b < dataArray.length; b++)
 	{
 		var data = dataArray[b];
-		if (data instanceof Array)
-		{
-			data.id = data[0];
-			data.rot = data[1];
+	if (data instanceof Array)
+	{
+		data.id = data[0];
+		data.rot = data[1];
 			data.status = data[2];
 			data.team = data[3];
 			data.weapons = data[4];
@@ -225,22 +225,22 @@ function onBoidAdded(dataArray)
 				weapon.precision = weapon[4];
 				weapon.range = weapon[5];
 			}
-		}
+	}
 
-		var boid = new Boid(data.id, data.team);
+	var boid = new Boid(data.id, data.team);
 		boid.data = data;
 		boid.status = data.status;
 		boid.weapons = data.weapons;
 		boid.netMobile.root.position.x = data.x;
 		boid.netMobile.root.position.y = data.y;
 
-		boidsMap[data.id] = boid;
+	boidsMap[data.id] = boid;
 		if (data.team)
 		{
-			assignTeam(data.id, data.team);
+	assignTeam(data.id, data.team);
 		}
-
-		boidsCount++;
+	
+	boidsCount++;
 		showBoidsCount();
 	}
 }
@@ -314,7 +314,7 @@ function onPv(dataView)
 
 	var boid = boidsMap[boidId];
 	if (!boid)
-	{
+{
 		console.warn("onPv", "boid #"+boidId+" not found!");
 		return;
 	}
@@ -323,15 +323,15 @@ function onPv(dataView)
 }
 
 function onBoidStatusChanged(data)
-{
+	{
 	console.log("onBoidStatusChanged", data)
 	var boid = boidsMap[data.shipId];
 
 	if (!boid)
-	{
+		{
 		console.warn("onBoidStatusChanged", "boid #"+data.shipId+" not found!");
-		return;
-	}
+			return;
+		}
 
 	if (data.status === "Waiting")
 	{
@@ -572,8 +572,8 @@ function shootLaser(boidId, targetId, hit)
 function hitLaser(boidId)
 {
 	var boid = boidsMap[boidId];
-	createExplosion(boidId, 1);
-}
+		createExplosion(boidId, 1);
+	}
 
 function shootMissile(boidId, targetId, hit)
 {
@@ -587,8 +587,8 @@ function shootMissile(boidId, targetId, hit)
 function hitMissile(boidId)
 {
 	var boid = boidsMap[boidId];
-	createExplosion(boidId, 2);
-}
+		createExplosion(boidId, 2);
+	}
 
 function randomBoid()
 {
@@ -650,7 +650,7 @@ function unassignTeam(boidId)
 
 	var index = team.boids.indexOf(boidId);
 	if (index !== -1)
-	{
+		{
 		team.boids.splice(index, 1);
 	}
 }

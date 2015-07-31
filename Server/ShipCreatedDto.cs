@@ -18,5 +18,7 @@ namespace Server
         public ushort id { get; set; }
 
         public Weapon[] weapons { get; set; }
+
+        public long timestamp { get; set; }
     }
 }

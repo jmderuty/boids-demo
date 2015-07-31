@@ -8,6 +8,7 @@ namespace Server
 {
     public class Weapon
     {
+        public long nextFireTry { get; set; }
         public string id { get; set; }
 
         public int damage { get; set; }

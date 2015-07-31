@@ -113,19 +113,21 @@ namespace BoidsClient
                 var targets = ships.Where(s => AtRange(s, w)).ToArray();
                 Ship target = targets.Length > 0 ? targets[_rand.Next(targets.Length)] : null;
 
-                if (target != null)
+                if (target != null  && false)
                 {
+                    w.nextFireTry = Clock() + w.coolDown+200;
                     Fire(target, w).ContinueWith(t =>
                     {
                         if (t.Result.error)
                         {
-                            Console.WriteLine("{0} -- ERROR -->{1} : {2}", Id, target.Id, t.Result.errorMsg);
-                            w.fireTimestamp += 100;//Make sure that we will retry in more than 100ms.
+                            //Console.WriteLine("{0} -- ERROR -->{1} : {2}", Id, target.Id, t.Result.errorMsg);
+                            w.nextFireTry = Clock()+200;//Make sure that we will retry in more than 100ms.
                         }
                         else
                         {
-                            Console.WriteLine("{0} --  {2}  --> {1}", Id, target.Id, t.Result.success ? ">" : "x");
+                            //Console.WriteLine("{0} --  {2}  --> {1}", Id, target.Id, t.Result.success ? ">" : "x");
                             w.fireTimestamp = Clock();
+                            w.nextFireTry = Clock() + w.coolDown + 200;
                         }
 
                     });
@@ -135,7 +137,7 @@ namespace BoidsClient
 
         private bool isAvailable(Weapon weapon)
         {
-            return Clock() > weapon.fireTimestamp + weapon.coolDown;
+            return Clock() > weapon.nextFireTry;
         }
 
         private bool AtRange(Ship ship, Weapon weapon)

@@ -181,7 +181,7 @@ namespace BoidsClient.Cmd
 
         private void OnShipAdded(Packet<IScenePeer> obj)
         {
-            Console.WriteLine("ship.add received");
+            //Console.WriteLine("ship.add received");
             if (_simulation != null && _isReady)
             {
                 var shipsToAdd = obj.ReadObject<ShipCreatedDto[]>();
@@ -192,7 +192,7 @@ namespace BoidsClient.Cmd
                     if (shipInfos.id != this.id && !_simulation.Environment.VisibleShips.ContainsKey(shipInfos.id))
                     {
                         var ship = new Ship { Id = shipInfos.id, Team = shipInfos.team, X = shipInfos.x, Status = shipInfos.status, Y = shipInfos.y, Rot = shipInfos.rot, Weapons = shipInfos.weapons };
-                        Console.WriteLine("[" + _name + "] Ship {0} added ", shipInfos.id);
+                        //Console.WriteLine("[" + _name + "] Ship {0} added ", shipInfos.id);
                         lock (_simulation.Environment)
                         {
                             _simulation.Environment.AddShip(ship);
@@ -207,7 +207,7 @@ namespace BoidsClient.Cmd
             if (_simulation != null)
             {
                 var id = obj.ReadObject<ushort>();
-                Console.WriteLine("[" + _name + "] Ship {0} removed ", id);
+                //Console.WriteLine("[" + _name + "] Ship {0} removed ", id);
                 lock (_simulation.Environment)
                 {
                     _simulation.Environment.RemoveShip(id);

@@ -19,9 +19,6 @@ function LeaderboardViewModel(id, name, description, scores)
 	this.name = ko.observable(name || "");
 	this.description = ko.observable(description || "");
 	this.scores = ko.observableArray(scores || []);
-	this.scores.subscribe(function(newValue) {
-		this.scores().sort(sort2PlayersByScore);
-	}.bind(this));
 }
 
 LeaderboardViewModel.prototype.select = function()
@@ -40,40 +37,4 @@ function ScoreViewModel(userid, username, score, leaderboard)
 	this.username = ko.observable(username || "");
 	this.score = ko.observable(score || null);
 	this.leaderboard = ko.observable(leaderboard || null);
-}
-
-function sort2PlayersById(pvm1, pvm2)
-{
-	if (pvm1.id() > pvm2.id())
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-function sort2PlayersByName(pvm1, pvm2)
-{
-	if (pvm1.name() > pvm2.name())
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-function sort2PlayersByScore(pvm1, pvm2)
-{
-	if (pvm1.score() < pvm2.score())
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
 }

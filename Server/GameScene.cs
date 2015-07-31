@@ -343,14 +343,16 @@ namespace Server
                 _ships.AddOrUpdate(ship.id, ship, (id, old) => ship);
 
                 var dto = new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status };
-                client.Send("ship.me", s => client.Serializer().Serialize(dto, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                var data = new ShipCreatedDto[1];
+                data[0] = dto;
+                client.Send("ship.me", s => client.Serializer().Serialize(data, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 
                 var peersBySerializer = _scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
                 foreach (var group in peersBySerializer)
                 {
                     _scene.Send(new MatchArrayFilter(group), "ship.add", s =>
                         {
-                            group.First().Serializer().Serialize(dto, s);
+                            group.First().Serializer().Serialize(data, s);
                         }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
                 }
             }

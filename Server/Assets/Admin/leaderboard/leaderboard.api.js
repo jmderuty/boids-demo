@@ -1,6 +1,10 @@
 var LeaderboardAPI = {
-	get: function(id, skip, take) {
-		return $.get("https://api.stormancer.com/"+accountId+"/"+applicationName+"/_admin/leaderboard/"+(id?id:'')+(skip?"?skip="+skip:'')+(take?(skip?"&":"?")+"take="+take:''), {
+	get: function(xToken, id, skip, take) {
+		var queryString = '?';
+		if (skip) queryString += "skip="+skip+'&';
+		if (take) queryString += "take="+take+'&';
+		//return $.get("https://api.stormancer.com/"+accountId+"/"+applicationName+"/_admin/leaderboard/"+(id?id:'')+queryString, {
+		return $.get("https://api.stormancer.com/"+accountId+"/"+applicationName+"/_admin/leaderboard/"+id+"/"+skip+"/"+take, {
 			contentType: "application/json",
 			dataType: "json",
 			headers: {

@@ -2,7 +2,7 @@ function LeaderboardGlobal() {
 	this.leaderboards = ko.observableArray();
 	this.selectedLeaderboard = ko.observable();
 
-	LeaderboardAPI.get().then(function(leaderboards) {
+	LeaderboardAPI.get(xToken).then(function(leaderboards) {
 		for (var i=0; i<3; i++)
 		{
 			var leaderboard = leaderboards[i];
@@ -13,32 +13,33 @@ function LeaderboardGlobal() {
 	});
 }
 
-function LeaderboardViewModel(id, name)
+function LeaderboardViewModel(id, name, description, scores)
 {
 	this.id = ko.observable(id || null);
 	this.name = ko.observable(name || "");
-	this.players = ko.observableArray();
-	this.players.subscribe(function(newValue) {
-		this.players().sort(sort2PlayersByScore);
+	this.description = ko.observable(description || "");
+	this.scores = ko.observableArray(scores || []);
+	this.scores.subscribe(function(newValue) {
+		this.scores().sort(sort2PlayersByScore);
 	}.bind(this));
-
-	for (var i=0;i<10;i++)
-	{
-		var id = parseInt(Math.random()*1000);
-		this.players.push(new PlayerViewModel(id, "Player #"+id, parseInt(Math.random()*1000)));
-	}
 }
 
 LeaderboardViewModel.prototype.select = function()
 {
 	leaderboardGlobalVM.selectedLeaderboard(this);
+	LeaderboardAPI.get(xToken, this.id, 0, 1000).then(function(leaderboard){
+		this.scores(leaderboard.scores);
+	}).fail(function(e){
+		console.log("leaderboard API get error", e);
+	});
 };
 
-function PlayerViewModel(id, name, score)
+function ScoreViewModel(userid, username, score, leaderboard)
 {
-	this.id = ko.observable(id || "");
-	this.name = ko.observable(name || "");
-	this.score = ko.observable(score || 0);
+	this.userid = ko.observable(id || null);
+	this.username = ko.observable(username || "");
+	this.score = ko.observable(score || null);
+	this.leaderboard = ko.observable(leaderboard || null);
 }
 
 function sort2PlayersById(pvm1, pvm2)
@@ -67,7 +68,7 @@ function sort2PlayersByName(pvm1, pvm2)
 
 function sort2PlayersByScore(pvm1, pvm2)
 {
-	if (pvm1.score() > pvm2.score())
+	if (pvm1.score() < pvm2.score())
 	{
 		return true;
 	}

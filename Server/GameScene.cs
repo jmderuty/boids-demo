@@ -99,8 +99,6 @@ namespace Server
                 if (target.currentPv > 0)
                 {
                     target.ChangePv(-weapon.damage);
-
-
                 }
             }
 
@@ -173,8 +171,8 @@ namespace Server
 
                             _scene.GetComponent<ILogger>().Log(LogLevel.Info, "gameloop", "running", new
                             {
-                                sends = metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                                received = ComputeMetrics()
+                                //sends = metrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                                //received = ComputeMetrics()
                             });
                             metrics.Clear();
                         }
@@ -216,8 +214,6 @@ namespace Server
             ship.y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN));
             ship.PositionUpdatedOn = clock;
             ship.ChangePv(ship.maxPv - ship.currentPv);
-
-
         }
 
         public class ReceivedDataMetrics
@@ -350,14 +346,13 @@ namespace Server
                 client.Send("ship.me", s => client.Serializer().Serialize(dto, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 
                 var peersBySerializer = _scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
-
-                //foreach (var group in peersBySerializer)
-                //{
-                //    _scene.Send(new MatchArrayFilter(group), "ship.add", s =>
-                //        {
-                //            group.First().Serializer().Serialize(dto, s);
-                //        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-                //}
+                foreach (var group in peersBySerializer)
+                {
+                    _scene.Send(new MatchArrayFilter(group), "ship.add", s =>
+                        {
+                            group.First().Serializer().Serialize(dto, s);
+                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                }
             }
 
             // Send ships to new client
@@ -365,7 +360,10 @@ namespace Server
             foreach (var s in _ships.Values.ToArray())
             {
                 var dto = new ShipCreatedDto { id = s.id, team = s.team, x = s.x, y = s.y, rot = s.rot, weapons = s.weapons, status = s.Status };
-                shipsToSend.Add(dto);
+                if (ship != null && ship.id != s.id)
+                {
+                    shipsToSend.Add(dto);
+                }
             }
             client.Send("ship.add", stream =>
             {
@@ -441,7 +439,6 @@ namespace Server
                     writer.Write(shipId);
                     writer.Write(diff);
                 }
-
             });
         }
     }

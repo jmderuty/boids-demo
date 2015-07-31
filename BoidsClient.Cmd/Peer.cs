@@ -97,11 +97,13 @@ namespace BoidsClient.Cmd
         {
             if (_isReady)
             {
-
                 var statusChangedArgs = obj.ReadObject<StatusChangedMsg>();
                 if (statusChangedArgs.shipId != this.id)
                 {
-                    _simulation.Environment.VisibleShips[statusChangedArgs.shipId].Status = (ShipStatus)statusChangedArgs.status;
+                    if (_simulation.Environment.VisibleShips.ContainsKey(statusChangedArgs.shipId))
+                    {
+                        _simulation.Environment.VisibleShips[statusChangedArgs.shipId].Status = (ShipStatus)statusChangedArgs.status;
+                    }
                 }
                 else
                 {
@@ -110,16 +112,13 @@ namespace BoidsClient.Cmd
                     Console.WriteLine("Ship {0} changed status to {1}", id, _simulation.Boid.Status);
                 }
             }
-            
         }
-
 
         private Stormancer.Scene _scene;
 
         private uint _offset;
         private Stopwatch _clock = new Stopwatch();
         private byte[] _buffer = new byte[boidFrameSize];
-        private uint _packetIndex = 0u;
         public void Run()
         {
             var watch = new Stopwatch();
@@ -139,7 +138,6 @@ namespace BoidsClient.Cmd
                         writer.Write(_simulation.Boid.Y);
                         writer.Write(_simulation.Boid.Rot);
                         writer.Write(_client.Clock);
-
                     }
                     var tWrite = watch.ElapsedMilliseconds;
                     Metrics.Instance.GetRepository("write").AddSample(id, tWrite);
@@ -154,11 +152,9 @@ namespace BoidsClient.Cmd
                 }
                 var tSim = watch.ElapsedMilliseconds;
                 Metrics.Instance.GetRepository("sim").AddSample(id, tSim - tSend);
-                _packetIndex++;
             }
 
             watch.Stop();
-
         }
 
         private void OnGetMyShipInfos(Packet<IScenePeer> obj)

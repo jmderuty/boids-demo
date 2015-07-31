@@ -68,7 +68,7 @@ namespace Server
                 Ship ship;
                 if (_ships.TryGetValue(id, out ship))
                 {
-                    ships.Add(new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status });
+                    ships.Add(new ShipCreatedDto { timestamp = _scene.GetComponent<IEnvironment>().Clock, id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status });
                 }
             }
 
@@ -382,7 +382,7 @@ namespace Server
 
                 _ships.AddOrUpdate(ship.id, ship, (id, old) => ship);
 
-                var dto = new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status };
+                var dto = new ShipCreatedDto { timestamp = _scene.GetComponent<IEnvironment>().Clock,  id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status };
                 var data = new[] { dto };
 
                 client.Send("ship.me", s => client.Serializer().Serialize(data, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
@@ -395,7 +395,7 @@ namespace Server
             var shipsToSend = new List<ShipCreatedDto>();
             foreach (var s in _ships.Values.ToArray())
             {
-                var dto = new ShipCreatedDto { id = s.id, team = s.team, x = s.x, y = s.y, rot = s.rot, weapons = s.weapons, status = s.Status };
+                var dto = new ShipCreatedDto { timestamp = _scene.GetComponent<IEnvironment>().Clock, id = s.id, team = s.team, x = s.x, y = s.y, rot = s.rot, weapons = s.weapons, status = s.Status };
                 if (ship == null || ship.id != s.id)
                 {
                     shipsToSend.Add(dto);

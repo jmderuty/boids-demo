@@ -176,12 +176,14 @@ namespace BoidsClient.Cmd
 
         private void OnShipAdded(Packet<IScenePeer> obj)
         {
-            
+            Console.WriteLine("ship.add received");
             if (_simulation != null && _isReady)
             {
-                while (obj.Stream.Position != obj.Stream.Length)
+                var shipsToAdd = obj.ReadObject<ShipCreatedDto[]>();
+                //while (obj.Stream.Position != obj.Stream.Length)
+                for (var i=0; i<shipsToAdd.Length; i++)
                 {
-                    var shipInfos = obj.ReadObject<ShipCreatedDto>();
+                    var shipInfos = shipsToAdd[i];
                     if (shipInfos.id != this.id)
                     {
                         var ship = new Ship { Id = shipInfos.id, Team = shipInfos.team, X = shipInfos.x, Y = shipInfos.y, Rot = shipInfos.rot, Weapons = shipInfos.weapons };

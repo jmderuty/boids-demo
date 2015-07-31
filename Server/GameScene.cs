@@ -338,6 +338,7 @@ namespace Server
             var player = new Player(pInfos, client.Id);
 
             _players.AddOrUpdate(client.Id, player, (id, old) => player);
+
             Ship ship = null;
             if (!player.IsObserver)
             {
@@ -350,34 +351,35 @@ namespace Server
 
                 var peersBySerializer = _scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
 
-                foreach (var group in peersBySerializer)
-                {
-                    _scene.Send(new MatchArrayFilter(group), "ship.add", s =>
-                        {
-                            group.First().Serializer().Serialize(dto, s);
-                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-                }
+                //foreach (var group in peersBySerializer)
+                //{
+                //    _scene.Send(new MatchArrayFilter(group), "ship.add", s =>
+                //        {
+                //            group.First().Serializer().Serialize(dto, s);
+                //        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                //}
+            }
 
-
+            // Send ships to new client
+            var shipsToSend = new List<ShipCreatedDto>();
+            foreach (var s in _ships.Values.ToArray())
+            {
+                var dto = new ShipCreatedDto { id = s.id, team = s.team, x = s.x, y = s.y, rot = s.rot, weapons = s.weapons, status = s.Status };
+                shipsToSend.Add(dto);
             }
             client.Send("ship.add", stream =>
-               {
-                   foreach (var s in _ships.Values.ToArray())
-                   {
-                       var dto = new ShipCreatedDto { id = s.id, team = s.team, x = s.x, y = s.y, rot = s.rot, weapons = s.weapons, status = s.Status };
-
-                       client.Serializer().Serialize(dto, stream);
-
-
-                   }
-               }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+            {
+                client.Serializer().Serialize(shipsToSend, stream);
+            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 
             if (ship != null)
             {
                 await Task.Delay(1000);
                 ship.UpdateStatus(ShipStatus.InGame);
             }
+
             _scene.GetComponent<ILogger>().Info("gameScene", "Added ship");
+
             StartUpdateLoop();
         }
 

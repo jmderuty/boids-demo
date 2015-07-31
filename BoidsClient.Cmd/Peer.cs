@@ -110,8 +110,12 @@ namespace BoidsClient.Cmd
                 }
                 else
                 {
+                    if (_simulation.Boid.Status != ShipStatus.InGame && statusChangedArgs.status == ShipStatus.InGame)
+                    {
+                        _simulation.Reset();
+                    } 
                     _simulation.Boid.Status = statusChangedArgs.status;
-
+                    
                     Console.WriteLine("Ship {0} changed status to {1}", id, _simulation.Boid.Status);
                 }
             }
@@ -148,11 +152,12 @@ namespace BoidsClient.Cmd
 
                     tSend = watch.ElapsedMilliseconds;
                     Metrics.Instance.GetRepository("send").AddSample(id, tSend - tWrite);
+                    lock (_simulation.Environment)
+                    {
+                        _simulation.Step();
+                    }
                 }
-                lock (_simulation.Environment)
-                {
-                    _simulation.Step();
-                }
+                
                 var tSim = watch.ElapsedMilliseconds;
                 Metrics.Instance.GetRepository("sim").AddSample(id, tSim - tSend);
             }
@@ -175,7 +180,7 @@ namespace BoidsClient.Cmd
             _simulation.Boid.X = dto.x;
             _simulation.Boid.Y = dto.y;
             _simulation.Boid.Rot = dto.rot;//= new Simulation(dto.x, dto.y, dto.rot);
-            _simulation.Boid.Weapons = dto.weapons.ToList();
+            _simulation.Boid.Weapons = dto.weapons.Select(w=>new WeaponViewModel { Weapon = w }). ToList();
             _isReady = true;
         }
 

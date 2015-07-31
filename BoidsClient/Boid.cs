@@ -110,13 +110,15 @@ namespace BoidsClient
             var q = from weapon in Weapons where isAvailable(weapon) select weapon;
             foreach (var w in q)
             {
-                var targets = ships.Where(s => AtRange(s, w)).ToArray();
+                var targets = ships.Where(s => AtRange(s, w.Weapon)).ToArray();
                 Ship target = targets.Length > 0 ? targets[_rand.Next(targets.Length)] : null;
 
                 if (target != null)
                 {
-                    w.nextFireTry = Clock() + w.coolDown+200;
-                    Fire(target, w).ContinueWith(t =>
+                    System.Diagnostics.Debug.WriteLine(w.nextFireTry + " " + Clock() + " " + w.Weapon.coolDown);
+                    w.nextFireTry = Clock() + w.Weapon.coolDown+200;
+                    
+                    Fire(target, w.Weapon).ContinueWith(t =>
                     {
                         if (t.Result.error)
                         {
@@ -126,8 +128,8 @@ namespace BoidsClient
                         else
                         {
                             //Console.WriteLine("{0} --  {2}  --> {1}", Id, target.Id, t.Result.success ? ">" : "x");
-                            w.fireTimestamp = Clock();
-                            w.nextFireTry = Clock() + w.coolDown + 200;
+                           
+                            w.nextFireTry = Clock() + w.Weapon.coolDown + 200;
                         }
 
                     });
@@ -135,7 +137,7 @@ namespace BoidsClient
             }
         }
 
-        private bool isAvailable(Weapon weapon)
+        private bool isAvailable(WeaponViewModel weapon)
         {
             return Clock() > weapon.nextFireTry;
         }
@@ -162,6 +164,6 @@ namespace BoidsClient
         }
 
 
-        public List<Weapon> Weapons { get; set; }
+        public List<WeaponViewModel> Weapons { get; set; }
     }
 }

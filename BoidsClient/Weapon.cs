@@ -8,7 +8,6 @@ namespace Server
 {
     public class Weapon
     {
-        public long nextFireTry { get; set; }
         public string id { get; set; }
 
         public int damage { get; set; }
@@ -20,5 +19,11 @@ namespace Server
         public int coolDown { get; set; }
 
         public int range { get; set; }
+    }
+
+    public class WeaponViewModel
+    {
+        public long nextFireTry { get; set; }
+        public Weapon Weapon { get; set; }
     }
 }

@@ -134,7 +134,7 @@ namespace Server
                 {
                     var current = env.Clock;
 
-                    if (current > lastRun + interval && _scene.RemotePeers.Any())
+                    if (_scene.RemotePeers.Any())
                     {
                         if (_ships.Any(s => s.Value.PositionUpdatedOn > lastRun))
                         {
@@ -275,7 +275,8 @@ namespace Server
                     var x = reader.ReadSingle();
                     var y = reader.ReadSingle();
                     var rot = reader.ReadSingle();
-                    var timestamp = reader.ReadInt64();
+                    //var timestamp = reader.ReadInt64();
+                    var timestamp = _scene.GetComponent<IEnvironment>().Clock;
 
                     Ship ship;
                     if (_ships.TryGetValue(shipId, out ship))

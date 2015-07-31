@@ -59,7 +59,7 @@ namespace Server
 
         private Task OnGetShipInfos(RequestContext<IScenePeerClient> arg)
         {
-      
+
             var shipIds = arg.ReadObject<ushort[]>();
 
             var ships = new List<ShipCreatedDto>(shipIds.Length);
@@ -76,40 +76,57 @@ namespace Server
             return Task.FromResult(true);
 
         }
-
-        private async Task UseSkill(RequestContext<IScenePeerClient> arg)
+        private async Task UseSkill(RequestContext<IScenePeerClient> args)
         {
+            string errorMsg = null;
+            if (!await UseSkillImpl(args))
+            {
+                args.SendValue(new UseSkillResponse { error = true, errorMsg = errorMsg });
+            }
+        }
+        private async Task<bool> UseSkillImpl(RequestContext<IScenePeerClient> arg)
+        {
+
             var env = _scene.GetComponent<IEnvironment>();
             var p = arg.ReadObject<UserSkillRequest>();
             var ship = _ships[_players[arg.RemotePeer.Id].ShipId];
 
             if (ship.Status != ShipStatus.InGame || ship.currentPv <= 0)
             {
-                throw new ClientException("You can only use skills during games.");
+                return false;
+                //throw new ClientException("You can only use skills during games.");
             }
 
             var timestamp = _scene.GetComponent<IEnvironment>().Clock;
             var weapon = ship.weapons.FirstOrDefault(w => w.id == p.skillId);
             if (weapon == null)
             {
-                throw new ClientException(string.Format("Skill '{0}' not available.", p.skillId));
+                return false;
+                //throw new ClientException(string.Format("Skill '{0}' not available.", p.skillId));
             }
 
             if (weapon.fireTimestamp + weapon.coolDown > timestamp)
             {
-                throw new ClientException("Skill in cooldown.");
+                return false;
+                //throw new ClientException("Skill in cooldown.");
+            }
+            if (!_ships.ContainsKey(p.target))
+            {
+                return false;
             }
 
             var target = _ships[p.target];
             if (target.Status != ShipStatus.InGame)
             {
-                throw new ClientException("Can only use skills on ships that are in game.");
+                return false;
+                //throw new ClientException("Can only use skills on ships that are in game.");
             }
             var dx = ship.x - target.x;
             var dy = ship.y - target.y;
             if (weapon.range * weapon.range < dx * dx + dy * dy)
             {
-                throw new ClientException("Target out of range.");
+                return false;
+                //throw new ClientException("Target out of range.");
             }
 
             weapon.fireTimestamp = timestamp;
@@ -121,9 +138,11 @@ namespace Server
                     target.ChangePv(-weapon.damage);
                 }
             }
-
             _scene.BroadcastUsedSkill(ship.id, target.id, success, weapon.id);
-            arg.SendValue(new UseSkillResponse { skillUpTimestamp = weapon.fireTimestamp + weapon.coolDown, success = success });
+
+
+            arg.SendValue(new UseSkillResponse { error = false, errorMsg = null, skillUpTimestamp = weapon.fireTimestamp + weapon.coolDown, success = success });
+            return true;
         }
         private Task OnStarting(dynamic arg)
         {
@@ -343,7 +362,7 @@ namespace Server
                     List<long> _;
                     _boidsTimes.TryRemove(player.ShipId, out _);
                     _scene.GetComponent<ILogger>().Info("gameScene", "removed ship");
-                    _scene.Broadcast("ship.remove", s => arg.Peer.Serializer().Serialize(ship.id, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                    _scene.Broadcast2("ship.remove", ship.id, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
                 }
             }
         }
@@ -368,14 +387,8 @@ namespace Server
 
                 client.Send("ship.me", s => client.Serializer().Serialize(data, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 
-                var peersBySerializer = _scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
-                foreach (var group in peersBySerializer)
-                {
-                    _scene.Send(new MatchArrayFilter(group), "ship.add", s =>
-                        {
-                            group.First().Serializer().Serialize(data, s);
-                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-                }
+                _scene.Broadcast2("ship.add", data, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+
             }
 
             // Send ships to new client
@@ -445,14 +458,26 @@ namespace Server
     {
         public static void BroadcastStatusChanged(this ISceneHost scene, ushort shipId, ShipStatus status)
         {
-            scene.Broadcast("ship.statusChanged", new StatusChangedMsg { shipId = shipId, status = status });
+            scene.Broadcast2("ship.statusChanged", new StatusChangedMsg { shipId = shipId, status = status });
         }
 
         public static void BroadcastUsedSkill(this ISceneHost scene, ushort shipId, ushort target, bool success, string weaponId)
         {
-            scene.Broadcast("ship.usedSkill", new UsedSkillMsg { shipId = target, origin = shipId, success = success, weaponId = weaponId });
+            scene.Broadcast2("ship.usedSkill", new UsedSkillMsg { shipId = target, origin = shipId, success = success, weaponId = weaponId });
         }
 
+        public static void Broadcast2<T>(this ISceneHost scene, string route, T data, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE)
+        {
+            var peersBySerializer = scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
+            foreach (var group in peersBySerializer)
+            {
+                var g = group;
+                scene.Send(new MatchArrayFilter(g), route, s =>
+                {
+                    g.First().Serializer().Serialize(data, s);
+                }, priority, reliability);
+            }
+        }
         public static void BroadcastPvUpdate(this ISceneHost scene, ushort shipId, int diff)
         {
             scene.Broadcast("ship.pv", s =>

@@ -104,28 +104,30 @@ namespace BoidsClient
                 }
             }
         }
-
+        private Random _rand = new Random();
         private void Fight(IEnumerable<Ship> ships)
         {
             var q = from weapon in Weapons where isAvailable(weapon) select weapon;
             foreach (var w in q)
             {
-                var target = ships.FirstOrDefault(s => AtRange(s, w));
+                var targets = ships.Where(s => AtRange(s, w)).ToArray();
+                Ship target = targets.Length > 0 ? targets[_rand.Next(targets.Length)] : null;
 
                 if (target != null)
                 {
                     Fire(target, w).ContinueWith(t =>
                     {
-                        if (t.IsFaulted)
+                        if (t.Result.error)
                         {
-                            Console.WriteLine("{0} -- ERROR -->{1}", Id, target.Id);
-                            w.fireTimestamp += 100;//Make sur that we will retry in more than 100ms.
+                            Console.WriteLine("{0} -- ERROR -->{1} : {2}", Id, target.Id, t.Result.errorMsg);
+                            w.fireTimestamp += 100;//Make sure that we will retry in more than 100ms.
                         }
                         else
                         {
                             Console.WriteLine("{0} --  {2}  --> {1}", Id, target.Id, t.Result.success ? ">" : "x");
                             w.fireTimestamp = Clock();
                         }
+
                     });
                 }
             }
@@ -138,7 +140,7 @@ namespace BoidsClient
 
         private bool AtRange(Ship ship, Weapon weapon)
         {
-            return ship.Status == ShipStatus.InGame && (ship.X - X) * (ship.X - X) + (ship.Y - Y) * (ship.Y - Y) < weapon.range * weapon.range;
+            return ship.Status == ShipStatus.InGame && (ship.X - X) * (ship.X - X) + (ship.Y - Y) * (ship.Y - Y) < (weapon.range - 10) * (weapon.range - 10);
         }
 
         public Func<long> Clock;

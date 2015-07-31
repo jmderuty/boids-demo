@@ -1,8 +1,8 @@
 var debug = false;
-
-var accountId = "997bc6ac-9021-2ad6-139b-da63edee8c58";
-var applicationName = "boids-test";
-var sceneName = "main";
+var splits = location.pathname.split('/');
+var accountId = splits[0];//"997bc6ac-9021-2ad6-139b-da63edee8c58";
+var applicationName = splits[1];//"boids-test";
+var sceneName = "main-session";
 
 var deltaReceiveAvg = new Average();
 var deltaReceiveClock = new THREE.Clock();

@@ -113,7 +113,7 @@ namespace BoidsClient
                 var targets = ships.Where(s => AtRange(s, w)).ToArray();
                 Ship target = targets.Length > 0 ? targets[_rand.Next(targets.Length)] : null;
 
-                if (target != null  && false)
+                if (target != null)
                 {
                     w.nextFireTry = Clock() + w.coolDown+200;
                     Fire(target, w).ContinueWith(t =>

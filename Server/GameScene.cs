@@ -138,7 +138,7 @@ namespace Server
                     target.ChangePv(-weapon.damage);
                 }
             }
-            _scene.BroadcastUsedSkill(ship.id, target.id, success, weapon.id);
+            _scene.BroadcastUsedSkill(ship.id, target.id, success, weapon.id, timestamp);
 
 
             arg.SendValue(new UseSkillResponse { error = false, errorMsg = null, skillUpTimestamp = weapon.fireTimestamp + weapon.coolDown, success = success });
@@ -362,7 +362,7 @@ namespace Server
                     List<long> _;
                     _boidsTimes.TryRemove(player.ShipId, out _);
                     _scene.GetComponent<ILogger>().Info("gameScene", "removed ship");
-                    _scene.Broadcast2("ship.remove", ship.id, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                    _scene.Broadcast("ship.remove", ship.id, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
                 }
             }
         }
@@ -387,7 +387,7 @@ namespace Server
 
                 client.Send("ship.me", s => client.Serializer().Serialize(data, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 
-                _scene.Broadcast2("ship.add", data, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                _scene.Broadcast("ship.add", data, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 
             }
 
@@ -458,26 +458,15 @@ namespace Server
     {
         public static void BroadcastStatusChanged(this ISceneHost scene, ushort shipId, ShipStatus status)
         {
-            scene.Broadcast2("ship.statusChanged", new StatusChangedMsg { shipId = shipId, status = status });
+            scene.Broadcast("ship.statusChanged", new StatusChangedMsg { shipId = shipId, status = status });
         }
 
-        public static void BroadcastUsedSkill(this ISceneHost scene, ushort shipId, ushort target, bool success, string weaponId)
+        public static void BroadcastUsedSkill(this ISceneHost scene, ushort shipId, ushort target, bool success, string weaponId, long timestamp)
         {
-            scene.Broadcast2("ship.usedSkill", new UsedSkillMsg { shipId = target, origin = shipId, success = success, weaponId = weaponId });
+            scene.Broadcast("ship.usedSkill", new UsedSkillMsg { shipId = target, origin = shipId, success = success, weaponId = weaponId, timestamp = timestamp });
         }
 
-        public static void Broadcast2<T>(this ISceneHost scene, string route, T data, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE)
-        {
-            var peersBySerializer = scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
-            foreach (var group in peersBySerializer)
-            {
-                var g = group;
-                scene.Send(new MatchArrayFilter(g), route, s =>
-                {
-                    g.First().Serializer().Serialize(data, s);
-                }, priority, reliability);
-            }
-        }
+
         public static void BroadcastPvUpdate(this ISceneHost scene, ushort shipId, int diff)
         {
             scene.Broadcast("ship.pv", s =>

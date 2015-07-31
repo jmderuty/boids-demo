@@ -19,9 +19,9 @@ namespace Server.Leaderboards
         public void Build(HostPluginBuildContext ctx)
         {
             
-            ctx.SceneCreating += scene =>
+            ctx.HostStarting += h =>
             {
-                scene.RegisterComponent<ILeaderboardsService>(() => new LeaderboardsService(scene.GetComponent<IESClientFactory>()));
+                h.DependencyResolver.Register<ILeaderboardsService, LeaderboardsService>();
             };
         }
     }

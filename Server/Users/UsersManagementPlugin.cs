@@ -27,18 +27,14 @@ namespace Server.Users
         {
             ctx.HostStarting += HostStarting;
 
-            ctx.SceneCreating += SceneCreating;
         }
         private void HostStarting(IHost host)
         {
             host.AddSceneTemplate("authenticator", AuthenticatorSceneFactory);
+            host.DependencyResolver.Register<IUserService>(_userService);
         }
 
-        private void SceneCreating(ISceneHost scene)
-        {
-
-            scene.RegisterComponent<IUserService>(() => _userService);
-        }
+       
 
         private void AuthenticatorSceneFactory(ISceneHost scene)
         {

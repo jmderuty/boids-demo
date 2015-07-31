@@ -17,21 +17,9 @@ namespace Server.Database
         {
 
 
-            ctx.SceneCreating += s =>
+            ctx.HostStarting += h =>
             {
-
-                s.RegisterComponent<IESClientFactory>(() =>
-                {
-
-                    lock (synclock)
-                    {
-                        if (factory == null)
-                        {
-                            factory = new ESClientFactory(s.GetComponent<IEnvironment>());
-                        }
-                    }
-                    return factory;
-                });
+                h.DependencyResolver.Register<IESClientFactory, ESClientFactory>();
             };
         }
     }

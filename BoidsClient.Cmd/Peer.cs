@@ -87,6 +87,7 @@ namespace BoidsClient.Cmd
             _clock.Start();
             IsRunning = true;
         }
+       
 
         private void OnShipUsedSkill(Packet<IScenePeer> obj)
         {
@@ -102,6 +103,8 @@ namespace BoidsClient.Cmd
                 {
                     if (_simulation.Environment.VisibleShips.ContainsKey(statusChangedArgs.shipId))
                     {
+
+                  
                         _simulation.Environment.VisibleShips[statusChangedArgs.shipId].Status = (ShipStatus)statusChangedArgs.status;
                     }
                 }
@@ -186,9 +189,9 @@ namespace BoidsClient.Cmd
                 for (var i = 0; i < shipsToAdd.Length; i++)
                 {
                     var shipInfos = shipsToAdd[i];
-                    if (shipInfos.id != this.id)
+                    if (shipInfos.id != this.id && !_simulation.Environment.VisibleShips.ContainsKey(shipInfos.id))
                     {
-                        var ship = new Ship { Id = shipInfos.id, Team = shipInfos.team, X = shipInfos.x, Y = shipInfos.y, Rot = shipInfos.rot, Weapons = shipInfos.weapons };
+                        var ship = new Ship { Id = shipInfos.id, Team = shipInfos.team, X = shipInfos.x, Status = shipInfos.status, Y = shipInfos.y, Rot = shipInfos.rot, Weapons = shipInfos.weapons };
                         Console.WriteLine("[" + _name + "] Ship {0} added ", shipInfos.id);
                         lock (_simulation.Environment)
                         {

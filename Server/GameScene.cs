@@ -51,10 +51,30 @@ namespace Server
             _scene.Connected.Add(OnConnected);
             _scene.Disconnected.Add(OnDisconnected);
             _scene.AddRoute("position.update", OnPositionUpdate);
-
+            _scene.AddProcedure("getShipInfos", OnGetShipInfos);
             _scene.AddProcedure("skill", UseSkill);
             _scene.Starting.Add(OnStarting);
             _scene.Shuttingdown.Add(OnShutdown);
+        }
+
+        private Task OnGetShipInfos(RequestContext<IScenePeerClient> arg)
+        {
+      
+            var shipIds = arg.ReadObject<ushort[]>();
+
+            var ships = new List<ShipCreatedDto>(shipIds.Length);
+            foreach (var id in shipIds)
+            {
+                Ship ship;
+                if (_ships.TryGetValue(id, out ship))
+                {
+                    ships.Add(new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status });
+                }
+            }
+
+            arg.SendValue(ships);
+            return Task.FromResult(true);
+
         }
 
         private async Task UseSkill(RequestContext<IScenePeerClient> arg)
@@ -344,8 +364,8 @@ namespace Server
                 _ships.AddOrUpdate(ship.id, ship, (id, old) => ship);
 
                 var dto = new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status };
-                var data = new ShipCreatedDto[1];
-                data[0] = dto;
+                var data = new[] { dto };
+
                 client.Send("ship.me", s => client.Serializer().Serialize(data, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 
                 var peersBySerializer = _scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
@@ -363,7 +383,7 @@ namespace Server
             foreach (var s in _ships.Values.ToArray())
             {
                 var dto = new ShipCreatedDto { id = s.id, team = s.team, x = s.x, y = s.y, rot = s.rot, weapons = s.weapons, status = s.Status };
-                if (ship != null && ship.id != s.id)
+                if (ship == null || ship.id != s.id)
                 {
                     shipsToSend.Add(dto);
                 }

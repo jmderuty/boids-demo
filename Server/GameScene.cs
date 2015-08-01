@@ -253,6 +253,7 @@ namespace Server
             ship.x = X_MIN + (float)(_rand.NextDouble() * (X_MAX - X_MIN));
             ship.y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN));
             ship.PositionUpdatedOn = clock;
+            _scene.GetComponent<ILogger>().Info("logic.respawn", "Trying to find peer for {0}", ship.player.Id);
             var peer = _scene.RemotePeers.FirstOrDefault(p => p.Id == ship.player.Id);
             if (peer != null)
             {

@@ -12,6 +12,6 @@ namespace Server.Users
 
         void AdjustScene(ISceneHost scene);
 
-        Task<bool> Authenticate(Dictionary<string, string> authenticationCtx, IUserService _userService);
+        Task<string> Authenticate(Dictionary<string, string> authenticationCtx, IUserService _userService);
     }
 }

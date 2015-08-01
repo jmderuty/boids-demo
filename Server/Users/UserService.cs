@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,27 +11,57 @@ namespace Server.Users
 {
     class UserService : IUserService
     {
-        public UserService(UserManagementConfig config)
-        {
+        private Database.ESClientFactory _clientFactory;
+        private string _indexName =Constants.INDEX;
 
+        public UserService(UserManagementConfig config, Database.ESClientFactory clientFactory)
+        {
+            _clientFactory = clientFactory;
         }
 
-        public Task AddAuthentication(User user, string provider, object authData)
+       
+        private async Task<Nest.IElasticClient> Client()
         {
-            throw new NotImplementedException();
+            return await _clientFactory.CreateClient(_indexName);
+        }
+        public async Task<User> AddAuthentication(User user, string provider, JObject authData)
+        {
+            var c = await Client();
+            var r = await c.GetAsync<User>(gd => gd.Id(user.Id));
+            r.Source.Auth["provider"] = authData;
+            
+            await (await Client()).IndexAsync(r.Source);
+            return r.Source;
         }
 
-        public Task<User> CreateUser(string v, JObject userData)
+        public async Task<User> CreateUser(string id, JObject userData)
         {
-            throw new NotImplementedException();
+            var user = new User() { Id = id, UserData = userData };
+
+            await (await Client()).IndexAsync(user);
+            return user;
         }
 
-        public Task<User> GetUser(IScenePeerClient peer)
+        public void SetUid(IScenePeerClient peer, string id)
         {
-            throw new NotImplementedException();
+            peer.Metadata["uid"] = id;
         }
 
-        public Task<User> GetUserByClaim(string provider, string claimPath, string login)
+        public async Task<User> GetUser(IScenePeerClient peer)
+        {
+            string id;
+            if(!peer.Metadata.TryGetValue(peer.Metadata["uid"],out id))
+            {
+                return null;
+            }
+            
+            var c = await Client();
+            var r = await c.GetAsync<User>(gd => gd.Id(id));
+
+            return r.Source;
+        }
+
+        public async Task<User> GetUserByClaim(string provider, string claimPath, string login)
         {
             throw new NotImplementedException();
         }

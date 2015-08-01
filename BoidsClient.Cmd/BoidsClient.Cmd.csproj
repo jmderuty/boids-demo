@@ -80,6 +80,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Server\GameStatus.cs">
+      <Link>GameStatus.cs</Link>
+    </Compile>
+    <Compile Include="..\Server\Matchmaking\FindMatchResult.cs">
+      <Link>FindMatchResult.cs</Link>
+    </Compile>
+    <Compile Include="AuthenticatorClient.cs" />
+    <Compile Include="GameSessionClient.cs" />
+    <Compile Include="IHandler.cs" />
+    <Compile Include="MatchmakerClient.cs" />
     <Compile Include="MetricsRepository.cs" />
     <Compile Include="Peer.cs" />
     <Compile Include="PeerFactory.cs" />
@@ -88,6 +98,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StatusChangedMsg.cs" />
+    <Compile Include="UserGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

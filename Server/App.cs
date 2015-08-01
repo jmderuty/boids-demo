@@ -12,7 +12,9 @@ namespace Server
     {
         public void Run(IAppBuilder builder)
         {
-            builder.AddPlugin(new UsersManagementPlugin());
+            var userConfig = new Users.UserManagementConfig() { SceneIdRedirect = Constants.MATCHMAKER_NAME };
+            userConfig.AuthenticationProviders.Add(new LoginPasswordAuthenticationProvider());
+            builder.AddPlugin(new UsersManagementPlugin(userConfig));
             builder.AddGameScene();
 
             var admintest = builder.AdminPlugin("admintest", Stormancer.Server.Admin.AdminPluginHostVersion.V0_1).Name("admintest");

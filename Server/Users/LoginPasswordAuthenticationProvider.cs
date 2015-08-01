@@ -24,54 +24,62 @@ namespace Server.Users
         {
             scene.AddProcedure("provider.loginpassword.createAccount", async p =>
             {
-
-                var userService = scene.GetComponent<IUserService>();
-                var rq = p.ReadObject<CreateAccountRequest>();
-
-                ValidateLoginPassword(rq.Login, rq.Password);
-
-                var user = await userService.GetUserByClaim(PROVIDER_NAME, "login", rq.Login);
-
-                if (user != null)
+                try
                 {
-                    throw new ClientException("An user with this login already exist.");
-                }
+                    var userService = scene.GetComponent<IUserService>();
+                    var rq = p.ReadObject<CreateAccountRequest>();
 
-                user = await userService.GetUser(p.RemotePeer);
-                if (user == null)
-                {
+                    ValidateLoginPassword(rq.Login, rq.Password);
+
+                    var user = await userService.GetUserByClaim(PROVIDER_NAME, "login", rq.Login);
+
+                    if (user != null)
+                    {
+                        throw new ClientException("An user with this login already exist.");
+                    }
+
+                    user = await userService.GetUser(p.RemotePeer);
+                    if (user == null)
+                    {
+                        try
+                        {
+
+                            await userService.CreateUser(PROVIDER_NAME + "-" + rq.Login, JObject.Parse(rq.UserData));
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new ClientException("Couldn't create account : " + ex.Message);
+                        }
+                    }
+
+                    var salt = GenerateSaltValue();
+
                     try
                     {
-
-                        await userService.CreateUser(PROVIDER_NAME + "-" + rq.Login, rq.UserData);
+                        await userService.AddAuthentication(user, PROVIDER_NAME, JObject.FromObject(new
+                        {
+                            login = rq.Login,
+                            email = rq.Email,
+                            salt = salt,
+                            password = HashPassword(rq.Password, salt),
+                            validated = false,
+                        }));
                     }
                     catch (Exception ex)
                     {
-                        throw new ClientException("Couldn't create account : " + ex.Message);
+                        throw new ClientException("Couldn't link account : " + ex.Message);
                     }
-                }
-
-                var salt = GenerateSaltValue();
-
-                try
-                {
-                    await userService.AddAuthentication(user, PROVIDER_NAME, new
+                    p.SendValue(new AuthenticationResult
                     {
-                        login = rq.Login,
-                        email = rq.Email,
-                        salt = salt,
-                        password = HashPassword(rq.Password, salt),
-                        validated = false,
+                        Success = true
                     });
+
+
                 }
                 catch (Exception ex)
                 {
-                    throw new ClientException("Couldn't link account : " + ex.Message);
+                    p.SendValue(new AuthenticationResult { ErrorMsg = ex.Message, Success = false });
                 }
-
-
-
-
             });
         }
 
@@ -120,23 +128,23 @@ namespace Server.Users
             }
         }
 
-        public async Task<bool> Authenticate(Dictionary<string, string> authenticationCtx, IUserService _userService)
+        public async Task<string> Authenticate(Dictionary<string, string> authenticationCtx, IUserService _userService)
         {
-            if(authenticationCtx["provider"] != PROVIDER_NAME)
+            if (authenticationCtx["provider"] != PROVIDER_NAME)
             {
-               
-                return false;
+
+                return null;
             }
 
             var login = authenticationCtx["login"];
             var password = authenticationCtx["password"];
-            if(string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(password))
+            if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(password))
             {
                 throw new ClientException("Login and password must be non empty.");
             }
 
             var user = await _userService.GetUserByClaim(PROVIDER_NAME, "login", login);
-            if(user == null)
+            if (user == null)
             {
                 throw new ClientException("No user found that matches the provided login/password.");
             }
@@ -147,11 +155,11 @@ namespace Server.Users
             string hash = authData.password;
 
             var candidateHash = HashPassword(password, salt);
-            if(hash != candidateHash)
+            if (hash != candidateHash)
             {
                 throw new ClientException("No user found that matches the provider login/password.");
             }
-            return true;
+            return user.Id;
         }
 
 
@@ -195,6 +203,7 @@ namespace Server.Users
 
         public string Email { get; set; }
 
-        public JObject UserData { get; set; }
+        //Json userdata
+        public string UserData { get; set; }
     }
 }

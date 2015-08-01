@@ -13,7 +13,7 @@ namespace Server.Users
     class UsersManagementPlugin : Stormancer.Plugins.IHostPlugin
     {
         private readonly UserManagementConfig _config;
-        private readonly IUserService _userService;
+        
         public UsersManagementPlugin(UserManagementConfig config = null)
         {
             if (config == null)
@@ -21,7 +21,7 @@ namespace Server.Users
                 config = new UserManagementConfig();
             }
             _config = config;
-            _userService = new UserService(config);
+            
         }
         public void Build(HostPluginBuildContext ctx)
         {
@@ -31,29 +31,48 @@ namespace Server.Users
         private void HostStarting(IHost host)
         {
             host.AddSceneTemplate("authenticator", AuthenticatorSceneFactory);
-            host.DependencyResolver.Register<IUserService>(_userService);
+            host.DependencyResolver.Register<UserManagementConfig>(_config);
         }
 
-       
+
 
         private void AuthenticatorSceneFactory(ISceneHost scene)
         {
             scene.AddProcedure("login", async p =>
             {
-
+                var accessor = scene.DependencyResolver.Resolve<Management.ManagementClientAccessor>();
                 var authenticationCtx = p.ReadObject<Dictionary<string, string>>();
-
-                foreach (var provider in _config.AuthenticationProviders)
+                var result = new AuthenticationResult();
+                var userService = scene.DependencyResolver.Resolve<IUserService>();
+                string userId;
+                try
                 {
-
-                    if (await provider.Authenticate(authenticationCtx, _userService))
+                    foreach (var provider in _config.AuthenticationProviders)
                     {
-                        break;
+                        userId = await provider.Authenticate(authenticationCtx, userService);
+                        if (!string.IsNullOrEmpty(userId))
+                        {
+                            result.Success = true;
+                            var client = await accessor.GetApplicationClient();
+                            result.Token = await client.CreateConnectionToken(_config.SceneIdRedirect, userId);
+                            userService.SetUid(p.RemotePeer, userId);
+                            break;
+                        }
+                    }
+                    if (!result.Success)
+                    {
+                        result.ErrorMsg = "No authentication provider able to handle these credentials were found.";
                     }
                 }
+                catch (ClientException ex)
+                {
+                    result.ErrorMsg = ex.Message;
+                }
+
+                p.SendValue(result);
 
 
-                //p.SendValue();
+
 
             });
 
@@ -79,6 +98,12 @@ namespace Server.Users
 
     public class AuthenticationResult
     {
+        public bool Success { get; set; }
 
+        public string Token { get; set; }
+
+        public string ErrorMsg { get; set; }
     }
+
+
 }

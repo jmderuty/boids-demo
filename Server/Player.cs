@@ -29,6 +29,8 @@ namespace Server
         }
         public bool isObserver;
 
+        public string userId { get; set; }
+
     }
   
 }

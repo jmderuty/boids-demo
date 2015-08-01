@@ -73,7 +73,7 @@ namespace BoidsClient.Worker
             }
             //AppDomain.Unload(peer.Domain);
         }
-     
+
         private async Task AddInstance()
         {
             var name = "peer" + i++;
@@ -91,31 +91,39 @@ namespace BoidsClient.Worker
             {
                 _peers.Remove(peer);
             };
-            
-            await proxy.Start(name,_apiEndpoint, _accountId, _app, _sceneId,true);
-          
+
+            await proxy.Start(name, _apiEndpoint, _accountId, _app, _sceneId, true);
+
         }
 
         public void RunPeers(int delay, CancellationToken ct)
         {
 
             var watch = new Stopwatch();
-            
-            var disposable = DefaultScheduler.Instance.SchedulePeriodic(TimeSpan.FromMilliseconds(delay), () => {
-                Metrics.Instance.GetRepository("period").AddSample(0, watch.ElapsedMilliseconds);
-                watch.Restart();
-                lock (_peers)
+
+            var disposable = DefaultScheduler.Instance.SchedulePeriodic(TimeSpan.FromMilliseconds(delay), () =>
+            {
+                try
                 {
-                    foreach (var peer in _peers)
+                    Metrics.Instance.GetRepository("period").AddSample(0, watch.ElapsedMilliseconds);
+                    watch.Restart();
+                    lock (_peers)
                     {
-                        if (peer.Proxy != null)
+                        foreach (var peer in _peers)
                         {
-                            peer.Proxy.RunStep();
+                            if (peer.Proxy != null)
+                            {
+                                peer.Proxy.RunStep();
+                            }
                         }
+                        var t = watch.ElapsedMilliseconds;
+                        var dt = delay - t;
+                        Metrics.Instance.GetRepository("total_step_duration").AddSample(0, t);
                     }
-                    var t = watch.ElapsedMilliseconds;
-                    var dt = delay - t;
-                    Metrics.Instance.GetRepository("total_step_duration").AddSample(0, t);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.GetType() + ": " + ex.Message + "==> " + ex.StackTrace);
                 }
             });
 

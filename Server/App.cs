@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Server.Users;
 
 namespace Server
 {
@@ -11,6 +12,7 @@ namespace Server
     {
         public void Run(IAppBuilder builder)
         {
+            builder.AddPlugin(new UsersManagementPlugin());
             builder.AddGameScene();
 
             var admintest = builder.AdminPlugin("admintest", Stormancer.Server.Admin.AdminPluginHostVersion.V0_1).Name("admintest");

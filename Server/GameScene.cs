@@ -241,22 +241,24 @@ namespace Server
 
                 if (ship.Status == ShipStatus.Dead && ship.lastStatusUpdate + 2000 < clock)
                 {
-                    ReviveShip(ship);
+                    var _ = ReviveShip(ship);
                 }
             }
         }
 
-        private void ReviveShip(Ship ship)
+        private async Task ReviveShip(Ship ship)
         {
             var clock = _scene.GetComponent<IEnvironment>().Clock;
-            
+
             ship.x = X_MIN + (float)(_rand.NextDouble() * (X_MAX - X_MIN));
             ship.y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN));
             ship.PositionUpdatedOn = clock;
             var peer = _scene.RemotePeers.FirstOrDefault(p => p.Id == ship.player.Id);
             if (peer != null)
             {
-                _scene.Send(new MatchPeerFilter(peer), "ship.forcePositionUpdate", (s) => {
+                _scene.GetComponent<ILogger>().Info("logic.respawn", "Sending respawn position to {0}", peer.Id);
+                _scene.Send(new MatchPeerFilter(peer), "ship.forcePositionUpdate", (s) =>
+                {
                     using (var writer = new BinaryWriter(s, Encoding.UTF8, true))
                     {
                         writer.Write(ship.id);
@@ -267,6 +269,7 @@ namespace Server
                     }
                 }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
             }
+            await Task.Delay(1000);
             ship.ChangePv(ship.maxPv - ship.currentPv);
         }
 
@@ -397,7 +400,7 @@ namespace Server
 
                 _ships.AddOrUpdate(ship.id, ship, (id, old) => ship);
 
-                var dto = new ShipCreatedDto { timestamp = _scene.GetComponent<IEnvironment>().Clock,  id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status };
+                var dto = new ShipCreatedDto { timestamp = _scene.GetComponent<IEnvironment>().Clock, id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status };
                 var data = new[] { dto };
 
                 client.Send("ship.me", s => client.Serializer().Serialize(data, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);

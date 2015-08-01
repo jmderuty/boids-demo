@@ -241,12 +241,12 @@ namespace Server
 
                 if (ship.Status == ShipStatus.Dead && ship.lastStatusUpdate + 2000 < clock)
                 {
-                    var _ = ReviveShip(ship);
+                     ReviveShip(ship);
                 }
             }
         }
 
-        private async Task ReviveShip(Ship ship)
+        private void ReviveShip(Ship ship)
         {
             var clock = _scene.GetComponent<IEnvironment>().Clock;
 
@@ -270,7 +270,7 @@ namespace Server
                     }
                 }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
             }
-            await Task.Delay(1000);
+            
             ship.ChangePv(ship.maxPv - ship.currentPv);
         }
 
@@ -398,7 +398,7 @@ namespace Server
             if (!player.IsObserver)
             {
                 ship = CreateShip(player);
-
+                player.ShipId = ship.id;
                 _ships.AddOrUpdate(ship.id, ship, (id, old) => ship);
 
                 var dto = new ShipCreatedDto { timestamp = _scene.GetComponent<IEnvironment>().Clock, id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status };

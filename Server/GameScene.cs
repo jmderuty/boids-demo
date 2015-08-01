@@ -249,9 +249,24 @@ namespace Server
         private void ReviveShip(Ship ship)
         {
             var clock = _scene.GetComponent<IEnvironment>().Clock;
+            
             ship.x = X_MIN + (float)(_rand.NextDouble() * (X_MAX - X_MIN));
             ship.y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN));
             ship.PositionUpdatedOn = clock;
+            var peer = _scene.RemotePeers.FirstOrDefault(p => p.Id == ship.player.Id);
+            if (peer != null)
+            {
+                _scene.Send(new MatchPeerFilter(peer), "ship.forcePositionUpdate", (s) => {
+                    using (var writer = new BinaryWriter(s, Encoding.UTF8, true))
+                    {
+                        writer.Write(ship.id);
+                        writer.Write(ship.x);
+                        writer.Write(ship.y);
+                        writer.Write(ship.rot);
+                        writer.Write(ship.PositionUpdatedOn);
+                    }
+                }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+            }
             ship.ChangePv(ship.maxPv - ship.currentPv);
         }
 

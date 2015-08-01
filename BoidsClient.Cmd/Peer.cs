@@ -46,7 +46,7 @@ namespace BoidsClient.Cmd
             if (!_isRunning)
             {
                 _isRunning = true;
-                Console.WriteLine("Peer started");
+               
                 return Initialize();
             }
             return Task.FromResult(true);
@@ -80,14 +80,61 @@ namespace BoidsClient.Cmd
             scene.AddRoute("ship.me", OnGetMyShipInfos);
             scene.AddRoute("ship.statusChanged", OnShipStatusChanged);
             scene.AddRoute("ship.usedSkill", OnShipUsedSkill);
+            scene.AddRoute("ship.forcePositionUpdate", OnForcePositionUpdate);
             await scene.Connect();
-
+            Console.WriteLine("Peer {0} connected",_name);
             _scene = scene;
             _offset = (uint)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) % uint.MaxValue;
             _clock.Start();
             IsRunning = true;
         }
-       
+
+        private void OnForcePositionUpdate(Packet<IScenePeer> obj)
+        {
+            using (var reader = new BinaryReader(obj.Stream))
+            {
+                var id = reader.ReadUInt16();
+                var x = reader.ReadSingle();
+                var y = reader.ReadSingle();
+                var rot = reader.ReadSingle();
+                var time = reader.ReadInt64();
+
+                if (id == this.id)
+                {
+                    _simulation.Boid.X = x;
+                    _simulation.Boid.Y = y;
+                    _simulation.Boid.Rot = rot;
+                }
+            }
+                
+        }
+
+        private void OnPositionUpdate(Packet<IScenePeer> obj)
+        {
+            if (_simulation != null)
+            {
+                using (var reader = new BinaryReader(obj.Stream))
+                {
+
+                    while (reader.BaseStream.Length - reader.BaseStream.Position >= boidFrameSize)
+                    {
+                        var id = reader.ReadUInt16();
+                        var x = reader.ReadSingle();
+                        var y = reader.ReadSingle();
+                        var rot = reader.ReadSingle();
+                        var time = reader.ReadInt64();
+
+                        if (id != this.id)
+                        {
+                            _simulation.Environment.UpdateShipLocation(id, x, y, rot);
+                        }
+                        else if (_simulation.Boid.Status != ShipStatus.InGame)
+                        {
+                        }
+                    }
+                }
+            }
+        }
 
         private void OnShipUsedSkill(Packet<IScenePeer> obj)
         {
@@ -116,7 +163,7 @@ namespace BoidsClient.Cmd
                     } 
                     _simulation.Boid.Status = statusChangedArgs.status;
                     
-                    Console.WriteLine("Ship {0} changed status to {1}", id, _simulation.Boid.Status);
+                  
                 }
             }
         }
@@ -220,35 +267,6 @@ namespace BoidsClient.Cmd
             }
         }
 
-        private void OnPositionUpdate(Packet<IScenePeer> obj)
-        {
-            if (_simulation != null)
-            {
-                using (var reader = new BinaryReader(obj.Stream))
-                {
-
-                    while (reader.BaseStream.Length - reader.BaseStream.Position >= boidFrameSize)
-                    {
-                        var id = reader.ReadUInt16();
-                        var x = reader.ReadSingle();
-                        var y = reader.ReadSingle();
-                        var rot = reader.ReadSingle();
-                        var time = reader.ReadInt64();
-
-                        if (id != this.id)
-                        {
-                            _simulation.Environment.UpdateShipLocation(id, x, y, rot);
-                        }
-                        else if (_simulation.Boid.Status != ShipStatus.InGame)
-                        {
-                            _simulation.Boid.X = x;
-                            _simulation.Boid.Y = y;
-                            _simulation.Boid.Rot = rot;
-                        }
-                    }
-                }
-            }
-        }
 
         public void Stop()
         {

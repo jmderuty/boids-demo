@@ -445,9 +445,9 @@ namespace Server
                 rot = (float)(_rand.NextDouble() * 2 * Math.PI),
                 x = X_MIN + (float)(_rand.NextDouble() * (X_MAX - X_MIN)),
                 y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN)),
-                currentPv = 50,
-                maxPv = 50,
-                weapons = new Weapon[] { new Weapon { id = "canon", damage = 10, precision = 0.4f, coolDown = 1500, range = 200 }/*, new Weapon { id = "missile", damage = 40, precision = 0.6f, coolDown = 3 }*/ }
+                currentPv = 15,
+                maxPv = 15,
+                weapons = new Weapon[] { new Weapon { id = "canon", damage = 10, precision = 0.6f, coolDown = 1500, range = 200 }/*, new Weapon { id = "missile", damage = 40, precision = 0.6f, coolDown = 3 }*/ }
             };
             return ship;
         }

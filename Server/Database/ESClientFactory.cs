@@ -4,15 +4,25 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Nest;
+using Stormancer;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
 
 namespace Server.Database
 {
+    public class Startup
+    {
+        public void Run(IAppBuilder builder)
+        {
+            builder.AddPlugin(new ESClientPlugin());
+
+        }
+    }
+
     internal class ESClientPlugin : IHostPlugin
     {
         private object synclock = new object();
-        private IESClientFactory factory = null;
+       
         public void Build(HostPluginBuildContext ctx)
         {
 
@@ -30,6 +40,9 @@ namespace Server.Database
     class ESClientFactory : IESClientFactory
     {
         private IEnvironment _environment;
+        private AsyncLock _lock = new AsyncLock();
+        private IEnumerable<Stormancer.Server.Index> _indices;
+
         public ESClientFactory(IEnvironment environment)
         {
             _environment = environment;
@@ -37,9 +50,19 @@ namespace Server.Database
 
         public async Task<IElasticClient> CreateClient(string indexName)
         {
-            var indices = await _environment.ListIndices();
+            if(_indices == null)
+            {
+                using (await _lock.LockAsync())
+                {
+                    if(_indices == null)
+                    {
+                        _indices = await _environment.ListIndices();
+                    }
+                }
+            }
+           
 
-            var index = indices.FirstOrDefault(i => i.name == indexName);
+            var index = _indices.FirstOrDefault(i => i.name == indexName);
             var endpoint = "https://api.stormancer.com";
             var connection = new Elasticsearch.Net.Connection.HttpClientConnection(
                  new ConnectionSettings(),

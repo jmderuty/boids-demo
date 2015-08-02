@@ -91,17 +91,22 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App.cs" />
+    <Compile Include="AsyncLock.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="Database\AuthenticatedHttpClientHandler.cs" />
     <Compile Include="Database\ESClientFactory.cs" />
     <Compile Include="GameScene.cs" />
+    <Compile Include="GameStatus.cs" />
     <Compile Include="Leaderboards\ILeaderboard.cs" />
     <Compile Include="Leaderboards\LeaderboardService.cs" />
     <Compile Include="Leaderboards\Leaderboard.cs" />
     <Compile Include="Leaderboards\LeaderboardEntry.cs" />
     <Compile Include="Leaderboards\LeaderBoardPlugin.cs" />
     <Compile Include="Management\ManagementPlugin.cs" />
+    <Compile Include="Matchmaking\FindMatchResult.cs" />
     <Compile Include="Matchmaking\MatchmakingBuilder.cs" />
     <Compile Include="Matchmaking\MatchMakingExtensions.cs" />
+    <Compile Include="Matchmaking\MatchmakingPlugin.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="ShipCreatedDto.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

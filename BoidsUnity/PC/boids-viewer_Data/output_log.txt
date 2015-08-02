@@ -1,0 +1,78 @@
+Initialize engine version: 5.1.1f1 (2046fc06d4d8)
+GfxDevice: creating device client; threaded=1
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.0]
+    Renderer: Intel(R) HD Graphics 5000 (ID=0xa26)
+    Vendor:   Intel
+    VRAM:     896 MB
+Begin MonoManager ReloadAssembly
+Platform assembly: C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\UnityEngine.dll (this message is harmless)
+Loading C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\UnityEngine.dll into Unity Child Domain
+Platform assembly: C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\Assembly-CSharp-firstpass.dll (this message is harmless)
+Loading C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\Assembly-CSharp-firstpass.dll into Unity Child Domain
+Platform assembly: C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\Assembly-CSharp.dll (this message is harmless)
+Loading C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\Assembly-CSharp.dll into Unity Child Domain
+Platform assembly: C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\UnityEngine.UI.dll (this message is harmless)
+Loading C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\UnityEngine.UI.dll into Unity Child Domain
+Platform assembly: C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\UnityEngine.Networking.dll (this message is harmless)
+Loading C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\UnityEngine.Networking.dll into Unity Child Domain
+Platform assembly: C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\UnityEngine.Analytics.dll (this message is harmless)
+Loading C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\UnityEngine.Analytics.dll into Unity Child Domain
+Platform assembly: C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\System.Threading.dll (this message is harmless)
+Loading C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\System.Threading.dll into Unity Child Domain
+- Completed reload, in  0.203 seconds
+desktop: 2160x1440 59Hz; virtual: 2160x1440 at 0,0
+<RI> Initializing input.
+<RI> Input initialized.
+<RI> Initialized touch support.
+Platform assembly: C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\System.Core.dll (this message is harmless)
+Platform assembly: C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\System.dll (this message is harmless)
+Platform assembly: C:\git\boids-demo\BoidsUnity\PC\boids-viewer_Data\Managed\Mono.Security.dll (this message is harmless)
+calling GetPublicScene
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+Info: Starting raknet transport client
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+Info: Raknet transport client started
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+Debug: Connecting to endpoint 192.99.17.138:60000
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+Debug: Connection request to 192.99.17.138|60000 accepted.
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+Trace: Connected to endpoint 192.99.17.138|60000
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+Trace: Received connection result. Scene handle: 141
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+Call dispatcher to hide UI.
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+Hiding UI.
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+GameEngine destroyed.
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+Trace: 192.99.17.138|60000 disconnected.
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+Trace: Disconnected from endpoint 192.99.17.138|60000
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+

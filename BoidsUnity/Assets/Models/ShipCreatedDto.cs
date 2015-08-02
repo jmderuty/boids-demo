@@ -12,6 +12,11 @@ namespace Models
         public float rot;
         public float y;
 
+        public ShipStatus status { get; set; }    
+        public ushort team { get; set; }
         public ushort id { get; set; }
+        public Weapon[] weapons { get; set; }
+
+        public long timestamp { get; set; }
     }
 }

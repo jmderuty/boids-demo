@@ -21,9 +21,9 @@ namespace BoidsClient.Cmd
 
         public async Task<AuthenticationResult> Authenticate(Client client)
         {
-            _scene = await client.GetPublicScene("authenticator", "");
+            _scene = await client.GetPublicScene("authenticator", true);
             var login = UserGenerator.Instance.GetLoginPassword();
-
+            await _scene.Connect();
             Result = await Login(login.Item1, login.Item2);
             if (!Result.Success)
             {

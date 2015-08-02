@@ -63,17 +63,37 @@ namespace Server.Users
 
         public async Task<User> GetUserByClaim(string provider, string claimPath, string login)
         {
-            throw new NotImplementedException();
+            var c = await Client();
+            var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term("auth." + provider + "." + claimPath, login)));
+            var h = r.Hits.FirstOrDefault();
+            if(h!= null)
+            {
+                return h.Source;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public bool IsAuthenticated(IScenePeerClient peer)
         {
-            throw new NotImplementedException();
+            return peer.Metadata["uid"] != null;//TODO: Do something better than that. It doesn't prove anything. We should check a signature.
         }
 
-        public Task UpdateUserData<T>(IScenePeerClient peer, T data)
+        public async Task UpdateUserData<T>(IScenePeerClient peer, T data)
         {
-            throw new NotImplementedException();
+            var user = await GetUser(peer);
+            if(user == null)
+            {
+                throw new InvalidOperationException("User not found.");
+
+            }
+            else
+            {
+                user.UserData = JObject.FromObject(data);
+                await (await Client()).IndexAsync(user);
+            }
         }
     }
 }

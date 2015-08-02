@@ -32,6 +32,7 @@ namespace Server.Users
         {
             host.AddSceneTemplate("authenticator", AuthenticatorSceneFactory);
             host.DependencyResolver.Register<UserManagementConfig>(_config);
+            host.DependencyResolver.Register<IUserService, UserService>();
         }
 
 

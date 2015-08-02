@@ -43,8 +43,9 @@ namespace Server.Users
                     {
                         try
                         {
-
-                            await userService.CreateUser(PROVIDER_NAME + "-" + rq.Login, JObject.Parse(rq.UserData));
+                            var uid = PROVIDER_NAME + "-" + rq.Login;
+                            user = await userService.GetUser(uid);
+                            user = await userService.CreateUser(PROVIDER_NAME + "-" + rq.Login, JObject.Parse(rq.UserData));
                         }
                         catch (Exception ex)
                         {
@@ -90,9 +91,9 @@ namespace Server.Users
                 throw new ClientException("User id must be non null or empty.");
 
             }
-            if (!System.Text.RegularExpressions.Regex.IsMatch(password, @"^[\w|_@-]+$"))
+            if (!System.Text.RegularExpressions.Regex.IsMatch(login, @"^[\w|_-]+$"))
             {
-                throw new ClientException("User id must contain alphanumeric characters, _ , @ or -.");
+                throw new ClientException("User id must contain alphanumeric characters, _  or -.");
             }
             if (string.IsNullOrEmpty(password))
             {

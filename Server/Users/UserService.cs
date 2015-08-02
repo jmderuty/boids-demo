@@ -50,7 +50,7 @@ namespace Server.Users
         public async Task<User> GetUser(IScenePeerClient peer)
         {
             string id;
-            if(!peer.Metadata.TryGetValue(peer.Metadata["uid"],out id))
+            if(!peer.Metadata.TryGetValue("uid",out id))
             {
                 return null;
             }
@@ -93,6 +93,21 @@ namespace Server.Users
             {
                 user.UserData = JObject.FromObject(data);
                 await (await Client()).IndexAsync(user);
+            }
+        }
+
+
+        public async Task<User> GetUser(string uid)
+        {
+            var c = await Client();
+            var r = await c.GetAsync<User>(gd => gd.Id(uid));
+            if (r.Source != null)
+            {
+                return r.Source;
+            }
+            else
+            {
+                return null;
             }
         }
     }

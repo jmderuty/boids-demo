@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Stormancer;
 using System.Reactive.Linq;
+using Newtonsoft.Json.Linq;
 
 namespace BoidsClient.Cmd
 {
@@ -42,7 +43,7 @@ namespace BoidsClient.Cmd
         public AuthenticationResult Result { get; private set; }
         private async Task<AuthenticationResult> CreateAccount(string login, string password)
         {
-            return await _scene.Rpc<CreateAccountRequest, AuthenticationResult>("provider.loginpassword.createAccount", new CreateAccountRequest { });
+            return await _scene.Rpc<CreateAccountRequest, AuthenticationResult>("provider.loginpassword.createAccount", new CreateAccountRequest { Login = login, Password = password, Email = login+"@elves.net", UserData = (new JObject()).ToString() });
         }
         private async Task<AuthenticationResult> Login(string login, string password)
         {

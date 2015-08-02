@@ -12,6 +12,8 @@ namespace Server.Users
     {
         Task<User> GetUser(IScenePeerClient peer);
 
+        Task<User> GetUser(string uid);
+
         Task UpdateUserData<T>(IScenePeerClient peer,T data);
 
         Task<User> AddAuthentication(User user,string provider, JObject authData); 

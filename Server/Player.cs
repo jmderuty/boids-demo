@@ -13,6 +13,7 @@ namespace Server
         public Player(PlayerInfos infos, long id)
         {
             IsObserver = infos.isObserver;
+            Id = id;
         }
         public bool IsObserver { get; private set; }
         public ushort ShipId { get; internal set; }
@@ -27,6 +28,8 @@ namespace Server
             return peer.Serializer().Deserialize<PlayerInfos>(new MemoryStream(peer.UserData));
         }
         public bool isObserver;
+
+        public string userId { get; set; }
 
     }
   

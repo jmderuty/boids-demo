@@ -17,6 +17,8 @@ namespace Server
     {
         public long skillUpTimestamp;
         public bool success;
+        public bool error;
+        public string errorMsg;
     }
 
     public class DamageMsg

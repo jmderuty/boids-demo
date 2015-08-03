@@ -12,9 +12,11 @@ namespace Server.Users
     {
         Task<User> GetUser(IScenePeerClient peer);
 
+        Task<User> GetUser(string uid);
+
         Task UpdateUserData<T>(IScenePeerClient peer,T data);
 
-        Task AddAuthentication(User user,string provider, object authData); 
+        Task<User> AddAuthentication(User user,string provider, JObject authData); 
 
         bool IsAuthenticated(IScenePeerClient peer);
 
@@ -22,6 +24,6 @@ namespace Server.Users
 
         Task<User> CreateUser(string v, JObject userData);
 
-
+        void SetUid(IScenePeerClient peer, string id);
     }
 }

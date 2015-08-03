@@ -20,4 +20,10 @@ namespace Server
 
         public int range { get; set; }
     }
+
+    public class WeaponViewModel
+    {
+        public long nextFireTry { get; set; }
+        public Weapon Weapon { get; set; }
+    }
 }

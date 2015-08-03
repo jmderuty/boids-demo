@@ -18,9 +18,18 @@ namespace BoidsClient
 
         public Environment Environment { get; private set; }
 
-        private DateTime lastRun = DateTime.UtcNow;
+        private DateTime lastRun = default(DateTime);
+
+        public void Reset()
+        {
+            lastRun = default(DateTime);
+        }
         public void Step()
         {
+            if(lastRun == default(DateTime))
+            {
+                lastRun = DateTime.UtcNow;
+            }
             var dt = (DateTime.UtcNow - lastRun).TotalMilliseconds / 1000;
             if (dt > 0.010)
             {

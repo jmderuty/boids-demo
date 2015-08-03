@@ -91,17 +91,22 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App.cs" />
+    <Compile Include="AsyncLock.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="Database\AuthenticatedHttpClientHandler.cs" />
     <Compile Include="Database\ESClientFactory.cs" />
     <Compile Include="GameScene.cs" />
+    <Compile Include="GameStatus.cs" />
     <Compile Include="Leaderboards\ILeaderboard.cs" />
     <Compile Include="Leaderboards\LeaderboardService.cs" />
     <Compile Include="Leaderboards\Leaderboard.cs" />
     <Compile Include="Leaderboards\LeaderboardEntry.cs" />
     <Compile Include="Leaderboards\LeaderBoardPlugin.cs" />
     <Compile Include="Management\ManagementPlugin.cs" />
+    <Compile Include="Matchmaking\FindMatchResult.cs" />
     <Compile Include="Matchmaking\MatchmakingBuilder.cs" />
     <Compile Include="Matchmaking\MatchMakingExtensions.cs" />
+    <Compile Include="Matchmaking\MatchmakingPlugin.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="ShipCreatedDto.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -120,10 +125,48 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\css\bootstrap-theme.css.map" />
+    <None Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\css\bootstrap.css.map" />
+    <None Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\fonts\glyphicons-halflings-regular.eot" />
+    <None Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\fonts\glyphicons-halflings-regular.ttf" />
+    <None Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\fonts\glyphicons-halflings-regular.woff" />
+    <None Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\fonts\glyphicons-halflings-regular.woff2" />
+    <None Include="Assets\Admin\leaderboard\libs\jquery-1.11.3.min.map" />
+    <None Include="Assets\Admin\viewer\LICENSE" />
+    <None Include="Assets\Admin\viewer\README.md" />
     <None Include="packages.config" />
     <None Include="_app.json" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\Admin\admintest\index.html" />
+    <Content Include="Assets\Admin\leaderboard\index.html" />
+    <Content Include="Assets\Admin\leaderboard\leaderboard.api.js" />
+    <Content Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\css\bootstrap-theme.css" />
+    <Content Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\css\bootstrap-theme.min.css" />
+    <Content Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\css\bootstrap.css" />
+    <Content Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\css\bootstrap.min.css" />
+    <Content Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\fonts\glyphicons-halflings-regular.svg" />
+    <Content Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\js\bootstrap.js" />
+    <Content Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\js\bootstrap.min.js" />
+    <Content Include="Assets\Admin\leaderboard\libs\bootstrap-3.3.5-dist\js\npm.js" />
+    <Content Include="Assets\Admin\leaderboard\libs\jquery-1.11.3.js" />
+    <Content Include="Assets\Admin\leaderboard\libs\knockout-3.3.0.js" />
+    <Content Include="Assets\Admin\leaderboard\main.js" />
+    <Content Include="Assets\Admin\leaderboard\viewmodels.js" />
+    <Content Include="Assets\Admin\viewer\average.js" />
+    <Content Include="Assets\Admin\viewer\boid.js" />
+    <Content Include="Assets\Admin\viewer\checker.js" />
+    <Content Include="Assets\Admin\viewer\explosion.js" />
+    <Content Include="Assets\Admin\viewer\index.html" />
+    <Content Include="Assets\Admin\viewer\lazer.js" />
+    <Content Include="Assets\Admin\viewer\libs\jquery-1.11.3.min.js" />
+    <Content Include="Assets\Admin\viewer\libs\stormancer.js" />
+    <Content Include="Assets\Admin\viewer\libs\three.min.js" />
+    <Content Include="Assets\Admin\viewer\main.js" />
+    <Content Include="Assets\Admin\viewer\missile.js" />
+    <Content Include="Assets\Admin\viewer\netgraph.js" />
+    <Content Include="Assets\Admin\viewer\netmobile.js" />
+    <Content Include="Assets\Admin\viewer\workerBoid.js" />
     <Content Include="bin\Elasticsearch.Net.Connection.HttpClient.dll" />
     <Content Include="bin\Elasticsearch.Net.dll" />
     <Content Include="bin\Nest.dll" />
@@ -131,7 +174,6 @@
     <Content Include="bin\Stormancer.Management.Client.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Assets\Admin\" />
     <Folder Include="Assets\Public\Viewer\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

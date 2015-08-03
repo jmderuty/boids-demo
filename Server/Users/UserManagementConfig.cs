@@ -13,6 +13,7 @@ namespace Server.Users
             AuthenticationProviders = new List<IAuthenticationProvider>();
         }
 
-        public IEnumerable<IAuthenticationProvider> AuthenticationProviders { get; private set; }
+        public List<IAuthenticationProvider> AuthenticationProviders { get; private set; }
+        public string  SceneIdRedirect { get;  set; }
     }
 }

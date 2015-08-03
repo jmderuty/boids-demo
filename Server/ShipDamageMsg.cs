@@ -9,5 +9,7 @@
         public ushort origin { get; set; }
 
         public string weaponId { get; set; }
+
+        public long timestamp { get; set; }
     }
 }

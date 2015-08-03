@@ -14,6 +14,7 @@ using Stormancer.Networking;
 using Stormancer.Core;
 using Stormancer.Cluster.Application;
 using Stormancer.Plugins;
+using System.Diagnostics;
 
 namespace Stormancer
 {
@@ -51,6 +52,7 @@ namespace Stormancer
         private readonly ApiClient _apiClient;
         private readonly string _accountId;
         private readonly string _applicationName;
+        private readonly int _pingInterval = 5000;
 
         private readonly PluginBuildContext _pluginCtx = new PluginBuildContext();
         private IConnection _serverConnection;
@@ -85,6 +87,7 @@ namespace Stormancer
         }
 
         private ILogger _logger = NullLogger.Instance;
+        private readonly IScheduler _scheduler;
 
         /// <summary>
         /// An user specified logger.
@@ -114,12 +117,16 @@ namespace Stormancer
         /// <param name="configuration">A configuration instance containing options for the client.</param>
         public Client(ClientConfiguration configuration)
         {
+            this._pingInterval = configuration.PingInterval;
+            this._scheduler = configuration.Scheduler;
+            this._logger = configuration.Logger;
             this._accountId = configuration.Account;
             this._applicationName = configuration.Application;
             _apiClient = new ApiClient(configuration, _tokenHandler);
-            this._transport = configuration.Transport;
+            //TODO handle scheduler in the transport
+            this._transport = configuration.TransportFactory(new Dictionary<string, object> { { "ILogger", this._logger }, { "IScheduler", this._scheduler } });
             this._dispatcher = configuration.Dispatcher;
-            _requestProcessor = new Stormancer.Networking.Processors.RequestProcessor(_logger, new List<IRequestModule>());
+            _requestProcessor = new Stormancer.Networking.Processors.RequestProcessor(_logger, Enumerable.Empty<IRequestModule>());
 
             _scenesDispatcher = new Processors.SceneDispatcher();
             this._dispatcher.AddProcessor(_requestProcessor);
@@ -135,6 +142,7 @@ namespace Stormancer
             this._metadata.Add("transport", _transport.Name);
             this._metadata.Add("version", "1.0.0a");
             this._metadata.Add("platform", "Unity");
+            this._metadata.Add("protocol", "2");
 
             this._maxPeers = configuration.MaxPeers;
 
@@ -151,6 +159,32 @@ namespace Stormancer
             Initialize();
         }
 
+        private Stopwatch _watch = new Stopwatch();
+
+        /// <summary>
+        /// Synchronized clock with the server.
+        /// </summary>
+        public long Clock
+        {
+            get
+            {
+                return _watch.ElapsedMilliseconds + _offset;
+            }
+        }
+
+        /// <summary>
+        /// Last ping value with the cluster.
+        /// </summary>
+        /// <remarks>
+        /// 0 means that no mesure has be made yet.
+        /// </remarks>
+        public long LastPing
+        {
+            get;
+            private set;
+        }
+        private long _offset;
+
         private void Initialize()
         {
             if (!_initialized)
@@ -159,7 +193,7 @@ namespace Stormancer
 
                 _transport.PacketReceived += Transport_PacketReceived;
 
-
+                this._watch.Start();
             }
         }
 
@@ -192,9 +226,16 @@ namespace Stormancer
         private Task<U> SendSystemRequest<T, U>(byte id, T parameter)
         {
             return _requestProcessor.SendSystemRequest(_serverConnection, id, s =>
-             {
-                 _systemSerializer.Serialize(parameter, s);
-             }).Then(packet => _systemSerializer.Deserialize<U>(packet.Stream));
+            {
+                _systemSerializer.Serialize(parameter, s);
+            }).Then(packet => _systemSerializer.Deserialize<U>(packet.Stream));
+        }
+        private Task UpdateServerMetadata()
+        {
+            return _requestProcessor.SendSystemRequest(_serverConnection, (byte)SystemRequestIDTypes.ID_SET_METADATA, s =>
+            {
+                _systemSerializer.Serialize(_serverConnection.Metadata, s);
+            });
         }
 
         /// <summary>
@@ -212,27 +253,32 @@ namespace Stormancer
             return TaskHelper.If(_serverConnection == null, () =>
             {
                 return TaskHelper.If(!_transport.IsRunning, () =>
+                {
+                    _cts = new CancellationTokenSource();
+                    return _transport.Start("client", new ConnectionHandler(), _cts.Token, null, (ushort)(_maxPeers + 1));
+                })
+                    .Then(() => _transport.Connect(ci.TokenData.Endpoints[_transport.Name]))
+                    .Then(connection =>
                     {
-                        _cts = new CancellationTokenSource();
-                        return _transport.Start("client", new ConnectionHandler(), _cts.Token, null, (ushort)(_maxPeers + 1));
+                        _serverConnection = connection;
+
+                        foreach (var kvp in _metadata)
+                        {
+                            _serverConnection.Metadata[kvp.Key] = kvp.Value;
+                        }
+                        return this.UpdateServerMetadata();
                     })
                     .Then(() =>
                     {
-                        return _transport.Connect(ci.TokenData.Endpoints[_transport.Name])
-                            .Then(connection =>
-                            {
-                                _serverConnection = connection;
-
-                                foreach (var kvp in _metadata)
-                                {
-                                    _serverConnection.Metadata[kvp.Key] = kvp.Value;
-                                }
-                            });
+                        if (ci.TokenData.Version > 0)
+                        {
+                            StartSyncClock();
+                        }
                     });
             }).Then(() =>
             {
                 var parameter = new Stormancer.Dto.SceneInfosRequestDto { Metadata = _serverConnection.Metadata, Token = ci.Token };
-                return SendSystemRequest<Stormancer.Dto.SceneInfosRequestDto, Stormancer.Dto.SceneInfosDto>((byte)MessageIDTypes.ID_GET_SCENE_INFOS, parameter);
+                return SendSystemRequest<Stormancer.Dto.SceneInfosRequestDto, Stormancer.Dto.SceneInfosDto>((byte)SystemRequestIDTypes.ID_GET_SCENE_INFOS, parameter);
             }).Then(result =>
             {
                 if (_serverConnection.GetComponent<ISerializer>() == null)
@@ -243,17 +289,20 @@ namespace Stormancer
                     }
                     _serverConnection.RegisterComponent(_serializers[result.SelectedSerializer]);
                     _serverConnection.Metadata.Add("serializer", result.SelectedSerializer);
-
                 }
-                var scene = new Scene(this._serverConnection, this, sceneId, ci.Token, result);
-
-                if (_pluginCtx.SceneCreated != null)
+                return UpdateServerMetadata().Then(() =>
                 {
-                    _pluginCtx.SceneCreated(scene);
-                }
+                    var scene = new Scene(this._serverConnection, this, sceneId, ci.Token, result);
 
-                return scene;
+                    if (_pluginCtx.SceneCreated != null)
+                    {
+                        _pluginCtx.SceneCreated(scene);
+                    }
+
+                    return scene;
+                });
             });
+
 
 
             //if (_serverConnection == null)
@@ -282,6 +331,55 @@ namespace Stormancer
             //var scene = new Scene(this._serverConnection, this, sceneId, ci.Token, result);
             //_scenesDispatcher.AddScene(scene);
             //return scene;
+        }
+
+        private IDisposable _syncClockSubscription;
+        private void StartSyncClock()
+        {
+            this._syncClockSubscription = this._scheduler.SchedulePeriodic(this._pingInterval, () =>
+            {
+                var _ = this.SyncClockImpl();
+            });
+        }
+
+        private Task SyncClockImpl()
+        {
+            long timeStart = this._watch.ElapsedMilliseconds;
+
+            try
+            {
+                return this._requestProcessor.SendSystemRequest(this._serverConnection, (byte)SystemRequestIDTypes.ID_PING, s =>
+                {
+                    s.Write(BitConverter.GetBytes(timeStart), 0, 8);
+                }, PacketPriority.IMMEDIATE_PRIORITY)
+                .Then(response =>
+                {
+                    ulong timeRef = 0;
+                    var timeEnd = this._watch.ElapsedMilliseconds;
+
+                    for (var i = 0; i < 8; i++)
+                    {
+                        timeRef += (((ulong)response.Stream.ReadByte()) << (8 * i));
+                    }
+
+                    this.LastPing = timeEnd - timeStart;
+                    this._offset = (long)timeRef - (this.LastPing / 2) - timeStart;
+                })
+                .ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {                        
+                        _logger.Error("ping - failed to ping server.");
+                        _logger.Error(t.Exception.InnerExceptions[0]);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("ping - failed to ping server.");
+                _logger.Error(ex);
+                return TaskHelper.FromResult(UniRx.Unit.Default);
+            };
         }
 
 
@@ -314,29 +412,32 @@ namespace Stormancer
                 }).ToList(),
                 ConnectionMetadata = _serverConnection.Metadata
             };
-            return this.SendSystemRequest<Stormancer.Dto.ConnectToSceneMsg, Stormancer.Dto.ConnectionResult>((byte)MessageIDTypes.ID_CONNECT_TO_SCENE, parameter)
-                .Then(result =>
+            return this.SendSystemRequest<Stormancer.Dto.ConnectToSceneMsg, Stormancer.Dto.ConnectionResult>((byte)SystemRequestIDTypes.ID_CONNECT_TO_SCENE, parameter)
+                .ContinueWith(t =>
+                {
+                    var result = t.Result;
+                    this.Logger.Trace("Received connection result. Scene handle: {0}", result.SceneHandle);
+                    scene.CompleteConnectionInitialization(result);
+                    _scenesDispatcher.AddScene(scene);
+                    if (_pluginCtx.SceneConnected != null)
                     {
-                        scene.CompleteConnectionInitialization(result);
-                        _scenesDispatcher.AddScene(scene);
-                        if (_pluginCtx.SceneConnected != null)
-                        {
-                            _pluginCtx.SceneConnected(scene);
-                        }
-                    });
+                        _pluginCtx.SceneConnected(scene);
+                    }
+                });
         }
+
 
         internal Task Disconnect(Scene scene, byte sceneHandle)
         {
-            return this.SendSystemRequest<byte, Stormancer.Dto.Empty>((byte)MessageIDTypes.ID_DISCONNECT_FROM_SCENE, sceneHandle)
+            return this.SendSystemRequest<byte, Stormancer.Dto.Empty>((byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, sceneHandle)
                 .Then(() =>
+                {
+                    this._scenesDispatcher.RemoveScene(sceneHandle);
+                    if (_pluginCtx.SceneDisconnected != null)
                     {
-                        this._scenesDispatcher.RemoveScene(sceneHandle);
-                        if (_pluginCtx.SceneDisconnected != null)
-                        {
-                            _pluginCtx.SceneDisconnected(scene);
-                        }
-                    });
+                        _pluginCtx.SceneDisconnected(scene);
+                    }
+                });
         }
 
 
@@ -374,15 +475,15 @@ namespace Stormancer
 
 
 
-        internal IObservable<Packet> SendRequest(IConnection peer, byte scene, ushort route, Action<Stream> writer)
-        {
-            if (writer == null)
-            {
-                throw new ArgumentNullException("writer");
+        //internal IObservable<Packet> SendRequest(IConnection peer, byte scene, ushort route, Action<Stream> writer)
+        //{
+        //    if (writer == null)
+        //    {
+        //        throw new ArgumentNullException("writer");
 
-            }
-            return _requestProcessor.SendSceneRequest(peer, scene, route, writer);
-        }
+        //    }
+        //    return _requestProcessor.SendSceneRequest(peer, scene, route, writer);
+        //}
 
         /// <summary>
         /// The client's unique stormancer Id. Returns null if the Id has not been acquired yet (connection still in progress).

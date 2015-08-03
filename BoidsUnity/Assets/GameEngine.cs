@@ -7,12 +7,19 @@ using Stormancer.Core;
 using System.IO;
 using System.Collections.Generic;
 using System;
+using System.Collections.Concurrent;
+using Stormancer.Diagnostics;
 
 public class GameEngine : MonoBehaviour
 {
-    private Scene _scene;
+    public long Delay = 1000;
+    public Color EvenTeamColor;
+    public Color OddTeamColor;
 
-    private readonly Dictionary<ushort, Ship> _gameObjects = new Dictionary<ushort, Ship>();
+    private Scene _scene;
+    private Client _client;
+
+    private readonly ConcurrentDictionary<ushort, ShipStateManager> _gameObjects = new ConcurrentDictionary<ushort, ShipStateManager>();
 
     public GameObject ShipPrefab;
 
@@ -20,106 +27,198 @@ public class GameEngine : MonoBehaviour
     void Start()
     {
         UniRx.MainThreadDispatcher.Initialize();
-        var ui = GameObject.Find("UI");
+        var loadingCanvas = GameObject.Find("LoadingCanvas");
         var config = Stormancer.ClientConfiguration.ForAccount("d81fc876-6094-3d92-a3d0-86d42d866b96", "boids-demo");
+        config.Logger = DebugLogger.Instance;
+        this._client = new Stormancer.Client(config);
 
-        var client = new Stormancer.Client(config);
 
-
-
-        client.GetPublicScene("main-session", new PlayerInfos { isObserver = true }).Then(
-            scene =>
+        Debug.Log("calling GetPublicScene");
+        this._client.GetPublicScene("main-session", new PlayerInfos { isObserver = true }).ContinueWith(
+            task =>
             {
-                _scene = scene;
-                scene.AddRoute("position.update", OnPositionUpdate);
-                scene.AddRoute("ship.remove", OnShipRemoved);
-                scene.AddRoute("ship.add", OnShipAdded);
-
-
-                _scene.Connect().Then(() =>
+                if (!task.IsFaulted)
                 {
-                    UniRx.MainThreadDispatcher.Post(() =>
+                    var scene = task.Result;
+                    _scene = scene;
+                    scene.AddRoute("position.update", OnPositionUpdate);
+                    scene.AddRoute<ushort>("ship.remove", OnShipRemoved);
+                    scene.AddRoute("ship.usedSkill", OnUsedSkill);
+                    scene.AddRoute<StatusChangedMsg>("ship.statusChanged", OnStatusChanged);
+                    scene.AddRoute<ShipCreatedDto[]>("ship.add", OnShipAdded);
+                    scene.AddRoute("ship.pv", OnShipPv);
+
+
+                    _scene.Connect().Then(() =>
                     {
-                        ui.SetActive(false);//Hide loading ui.
+                        Debug.Log("Call dispatcher to hide UI.");
+                        UniRx.MainThreadDispatcher.Post(() =>
+                        {
+                            Debug.Log("Hiding UI.");
+                            loadingCanvas.SetActive(false);//Hide loading ui.
 
 
+                        });
+
+                    })
+                    .ContinueWith(t =>
+                    {
+                        if (t.IsFaulted)
+                        {
+                            Debug.LogException(t.Exception.InnerException);
+                        }
                     });
-
-                });
-            }
-            );
+                }
+            });
     }
+
+    private void OnStatusChanged(StatusChangedMsg statusChanged)
+    {
+        ShipStateManager ship;
+        if (!_gameObjects.TryGetValue(statusChanged.shipId, out ship))
+        {
+            ship = new ShipStateManager();
+            ship = _gameObjects.AddOrUpdate(statusChanged.shipId, ship, (_, val) => val);
+        }
+
+        ship.RegisterStatusChanged(statusChanged.status, this._client.Clock - this._client.LastPing / 2);
+    }
+
+    private void OnUsedSkill(Packet<IScenePeer> packet)
+    {
+        while (packet.Stream.Position < packet.Stream.Length)
+        {
+            var skill = packet.ReadObject<UsedSkillMsg>();
+
+            ShipStateManager originShip;
+            if (_gameObjects.TryGetValue(skill.origin, out originShip))
+            {
+                originShip.RegisterSkill(skill, this._client.Clock - this._client.LastPing / 2);
+            }
+        }
+    }
+
+    private void OnShipPv(Packet<IScenePeer> obj)
+    {
+        // Do nothing, we don't display ship's HP
+    }
+
+
 
     // Update is called once per frame
     void Update()
     {
-        var deleteArray = new List<Ship>();
-        foreach (var ship in _gameObjects.Values)
+        var deleteArray = new List<ushort>();
+        foreach (var kvp in _gameObjects)
         {
-            if(ship.Deletable)
-            {
-                deleteArray.Add(ship);
-            }
-            else if (ship.Obj == null)
-            {
-                ship.Obj = (GameObject)Instantiate(ShipPrefab,ship.Target,  ship.TargetRot);
-            }
-            else
-            {
-                var ratio = (DateTime.UtcNow - ship.LastDate).TotalMilliseconds / (ship.TargetDate - ship.LastDate).TotalMilliseconds;
+            var key = kvp.Key;
 
-                var position = Vector3.Lerp(ship.Last, ship.Target, (float)ratio);
-                var rotation = Quaternion.Lerp(ship.LastRot, ship.TargetRot, (float)ratio);
+            var ship = kvp.Value;
+            var renderingInfos = ship.GetRenderingInfos(this._client.Clock - Delay);
 
-                ship.Current = position;
-                ship.CurrentRot = rotation;
-                ship.Obj.transform.position = position;
-                
-                ship.Obj.transform.rotation = rotation;
+            switch (renderingInfos.Kind)
+            {
+                case ShipRenderingInfos.RenderingKind.RemoveShip:
+                    deleteArray.Add(key);
+                    break;
+                case ShipRenderingInfos.RenderingKind.AddShip:
+                    var obj = (GameObject)Instantiate(ShipPrefab, renderingInfos.Position, renderingInfos.Rotation);
+
+                    var color = renderingInfos.Team % 2 == 0 ? this.EvenTeamColor : this.OddTeamColor;
+                    obj.GetComponent<BoidBehavior>().Color = color;
+
+                    ship.Obj = obj;
+                    break;
+                case ShipRenderingInfos.RenderingKind.DrawShip:
+                    if (ship.Obj != null)
+                    {
+                        ship.Obj.GetComponent<Renderer>().enabled = true;
+                        ship.Obj.transform.position = renderingInfos.Position;
+                        ship.Obj.transform.rotation = renderingInfos.Rotation;
+                    }
+                    break;
+                case ShipRenderingInfos.RenderingKind.HideShipe:
+                    if (ship.Obj != null)
+                    {
+                        ship.Obj.GetComponent<Renderer>().enabled = false;
+                        ship.Obj.GetComponent<BoidBehavior>().Explode(true);
+                    }
+                    break;
+            }
+
+            foreach (var skill in renderingInfos.Skills)
+            {
+                if (skill.weaponId == "canon")
+                {
+                    if (ship.Obj != null)
+                    {
+                        ShipStateManager targetShip;
+                        if (this._gameObjects.TryGetValue(skill.shipId, out targetShip) && targetShip.Obj != null)
+                        {
+                            ship.Obj.GetComponentInChildren<Canon>().Shoot(targetShip.Obj.transform);
+
+                            if (skill.success)
+                            {
+                                targetShip.Obj.GetComponent<BoidBehavior>().Explode(false);
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        foreach(var el in deleteArray)
+        foreach (var id in deleteArray)
         {
-            _gameObjects.Remove(el.Id);
-            if(el.Obj!=null)
+            ShipStateManager ship;
+            _gameObjects.TryRemove(id, out ship);
+            if (ship.Obj != null)
             {
-                GameObject.Destroy(el.Obj);
+                GameObject.Destroy(ship.Obj);
             }
         }
     }
 
-    private void OnShipAdded(Packet<IScenePeer> obj)
+    //private void OnShipAdded(Packet<IScenePeer> obj)
+    //{
+
+    //    var shipInfos = obj.ReadObject<ShipCreatedDto>();
+    //    var rot = Quaternion.Euler(0, 0, shipInfos.rot * (180 / (float)Math.PI));
+    //    var ship = new Ship { Id = shipInfos.id, LastRot = rot, TargetRot = rot, Target = new Vector3(shipInfos.x, shipInfos.y), Last = new Vector3(shipInfos.x, shipInfos.y), TargetDate = DateTime.UtcNow };
+    //    UnityEngine.Debug.Log(string.Format("Ship {0} added ", shipInfos.id));
+
+    //    _gameObjects.Add(ship.Id, ship);
+
+    //}
+
+    private void OnShipAdded(ShipCreatedDto[] shipDtos)
     {
+        foreach (var shipDto in shipDtos)
+        {
+            ShipStateManager ship;
+            if (!_gameObjects.TryGetValue(shipDto.id, out ship))
+            {
+                ship = new ShipStateManager();
+                ship = _gameObjects.AddOrUpdate(shipDto.id, ship, (_, val) => val);
+            }
 
-        var shipInfos = obj.ReadObject<ShipCreatedDto>();
-        var rot = Quaternion.Euler(0, 0, shipInfos.rot * (180 / (float)Math.PI));
-        var ship = new Ship { Id = shipInfos.id, LastRot = rot, TargetRot = rot, Target = new Vector3(shipInfos.x, shipInfos.y), Last = new Vector3(shipInfos.x, shipInfos.y), TargetDate = DateTime.UtcNow };
-        UnityEngine.Debug.Log(string.Format("Ship {0} added ", shipInfos.id));
-
-        _gameObjects.Add(ship.Id, ship);
-
+            ship.RegisterCreation(shipDto);
+        }
     }
 
-    private void OnShipRemoved(Packet<IScenePeer> obj)
+    private void OnShipRemoved(ushort id)
     {
-
-
-        var id = obj.ReadObject<ushort>();
         UnityEngine.Debug.Log(string.Format("Ship {0} removed ", id));
-        Ship ship;
-        if(_gameObjects.TryGetValue(id,out ship))
+        ShipStateManager ship;
+        if (_gameObjects.TryGetValue(id, out ship))
         {
-            ship.Deletable = true;
+            ship.RegisterRemoved(this._client.Clock - this._client.LastPing / 2);
         }
-
-
     }
 
-    private void OnPositionUpdate(Packet<IScenePeer> obj)
+    private void OnPositionUpdate(Packet<IScenePeer> packet)
     {
 
-        using (var reader = new BinaryReader(obj.Stream))
+        using (var reader = new BinaryReader(packet.Stream))
         {
             while (reader.BaseStream.Position < reader.BaseStream.Length)
             {
@@ -127,29 +226,38 @@ public class GameEngine : MonoBehaviour
                 var x = reader.ReadSingle();
                 var y = reader.ReadSingle();
                 var rot = reader.ReadSingle();
+                var time = reader.ReadInt64();
 
-                Ship ship;
+
+                ShipStateManager ship;
                 if (!_gameObjects.TryGetValue(id, out ship))
                 {
-                    ship = new Ship { Id = id };
-                    _gameObjects.Add(id, ship);
+                    ship = new ShipStateManager();
+                    ship = _gameObjects.AddOrUpdate(id, ship, (_, val) => val);
                 }
-                ship.Last = ship.Current;
-                ship.LastDate = DateTime.UtcNow;
-                ship.LastRot = ship.CurrentRot;
-                
 
-                ship.Target = new Vector3(x,y);
-               
-                ship.TargetRot = Quaternion.Euler(0, 0, rot * (180 / (float)Math.PI));
-                ship.TargetDate = DateTime.UtcNow + TimeSpan.FromMilliseconds(200);
-                
-
+                ship.RegisterPosition(x, y, rot, time);
             }
         }
     }
 
-
+    public void OnDestroy()
+    {
+        if (this._scene != null)
+        {
+            if (this._scene.Connected)
+            {
+                this._scene.Disconnect();
+            }
+            this._scene = null;
+        }
+        if (this._client != null)
+        {
+            this._client.Dispose();
+            this._client = null;
+        }
+        UnityEngine.Debug.Log("GameEngine destroyed.");
+    }
 
     private class Ship
     {
@@ -163,14 +271,17 @@ public class GameEngine : MonoBehaviour
         public Quaternion CurrentRot { get; set; }
 
         public Quaternion TargetRot { get; set; }
-       
+
 
         public DateTime TargetDate { get; set; }
         public DateTime LastDate { get; set; }
-       
+
         public GameObject Obj { get; set; }
         public bool Deletable { get; internal set; }
-      
+
+        public ushort? Team { get; set; }
+
+        public ShipStatus Status { get; set; }
     }
 }
 

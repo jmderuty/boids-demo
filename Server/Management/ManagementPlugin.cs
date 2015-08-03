@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Stormancer;
 using Stormancer.Core;
 using Stormancer.Management.Client;
 using Stormancer.Plugins;
@@ -10,31 +11,36 @@ using Stormancer.Server.Components;
 
 namespace Server.Management
 {
+    public class Startup
+    {
+        public void Run(IAppBuilder builder)
+        {
+            builder.AddPlugin(new ManagementPlugin());
+        }
+    }
     class ManagementPlugin : IHostPlugin
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.SceneCreating += OnSceneCreating;
+            ctx.HostStarting += h => {
+                h.DependencyResolver.Register<ManagementClientAccessor, ManagementClientAccessor>();
+            };
         }
 
-        private void OnSceneCreating(ISceneHost scene)
-        {
-            //var lazy = new Lazy<Stormancer.Management.Client.ApplicationClient>(() => {
-            //    var environment = scene.GetComponent<IEnvironment>();
-            //    environment.GetApplicationInfos();
-            //});
-        }
     }
 
     public class ManagementClientAccessor
     {
+        private readonly IEnvironment _environment;
         public ManagementClientAccessor(IEnvironment environment)
         {
-            
+            _environment = environment;
         }
-        public Task<Stormancer.Management.Client.ApplicationClient> GetApplicationClient()
+        public async Task<Stormancer.Management.Client.ApplicationClient> GetApplicationClient()
         {
-            throw new NotImplementedException();
+            var infos = await _environment.GetApplicationInfos();
+
+            return Stormancer.Management.Client.ApplicationClient.ForApi(infos.AccountId, infos.ApplicationName, infos.PrimaryKey);
         }
     }
 }

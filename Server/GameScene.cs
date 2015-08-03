@@ -59,7 +59,7 @@ namespace Server
 
         private Task OnGetShipInfos(RequestContext<IScenePeerClient> arg)
         {
-      
+
             var shipIds = arg.ReadObject<ushort[]>();
 
             var ships = new List<ShipCreatedDto>(shipIds.Length);
@@ -68,7 +68,7 @@ namespace Server
                 Ship ship;
                 if (_ships.TryGetValue(id, out ship))
                 {
-                    ships.Add(new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status });
+                    ships.Add(new ShipCreatedDto { timestamp = _scene.GetComponent<IEnvironment>().Clock, id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status });
                 }
             }
 
@@ -76,40 +76,57 @@ namespace Server
             return Task.FromResult(true);
 
         }
-
-        private async Task UseSkill(RequestContext<IScenePeerClient> arg)
+        private async Task UseSkill(RequestContext<IScenePeerClient> args)
         {
+            string errorMsg = null;
+            if (!await UseSkillImpl(args))
+            {
+                args.SendValue(new UseSkillResponse { error = true, errorMsg = errorMsg });
+            }
+        }
+        private async Task<bool> UseSkillImpl(RequestContext<IScenePeerClient> arg)
+        {
+
             var env = _scene.GetComponent<IEnvironment>();
             var p = arg.ReadObject<UserSkillRequest>();
             var ship = _ships[_players[arg.RemotePeer.Id].ShipId];
 
             if (ship.Status != ShipStatus.InGame || ship.currentPv <= 0)
             {
-                throw new ClientException("You can only use skills during games.");
+                return false;
+                //throw new ClientException("You can only use skills during games.");
             }
 
             var timestamp = _scene.GetComponent<IEnvironment>().Clock;
             var weapon = ship.weapons.FirstOrDefault(w => w.id == p.skillId);
             if (weapon == null)
             {
-                throw new ClientException(string.Format("Skill '{0}' not available.", p.skillId));
+                return false;
+                //throw new ClientException(string.Format("Skill '{0}' not available.", p.skillId));
             }
 
             if (weapon.fireTimestamp + weapon.coolDown > timestamp)
             {
-                throw new ClientException("Skill in cooldown.");
+                return false;
+                //throw new ClientException("Skill in cooldown.");
+            }
+            if (!_ships.ContainsKey(p.target))
+            {
+                return false;
             }
 
             var target = _ships[p.target];
             if (target.Status != ShipStatus.InGame)
             {
-                throw new ClientException("Can only use skills on ships that are in game.");
+                return false;
+                //throw new ClientException("Can only use skills on ships that are in game.");
             }
             var dx = ship.x - target.x;
             var dy = ship.y - target.y;
             if (weapon.range * weapon.range < dx * dx + dy * dy)
             {
-                throw new ClientException("Target out of range.");
+                return false;
+                //throw new ClientException("Target out of range.");
             }
 
             weapon.fireTimestamp = timestamp;
@@ -121,9 +138,11 @@ namespace Server
                     target.ChangePv(-weapon.damage);
                 }
             }
+            _scene.BroadcastUsedSkill(ship.id, target.id, success, weapon.id, timestamp);
 
-            _scene.BroadcastUsedSkill(ship.id, target.id, success, weapon.id);
-            arg.SendValue(new UseSkillResponse { skillUpTimestamp = weapon.fireTimestamp + weapon.coolDown, success = success });
+
+            arg.SendValue(new UseSkillResponse { error = false, errorMsg = null, skillUpTimestamp = weapon.fireTimestamp + weapon.coolDown, success = success });
+            return true;
         }
         private Task OnStarting(dynamic arg)
         {
@@ -222,7 +241,7 @@ namespace Server
 
                 if (ship.Status == ShipStatus.Dead && ship.lastStatusUpdate + 2000 < clock)
                 {
-                    ReviveShip(ship);
+                     ReviveShip(ship);
                 }
             }
         }
@@ -230,9 +249,28 @@ namespace Server
         private void ReviveShip(Ship ship)
         {
             var clock = _scene.GetComponent<IEnvironment>().Clock;
+
             ship.x = X_MIN + (float)(_rand.NextDouble() * (X_MAX - X_MIN));
             ship.y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN));
             ship.PositionUpdatedOn = clock;
+            _scene.GetComponent<ILogger>().Info("logic.respawn", "Trying to find peer for {0}", ship.player.Id);
+            var peer = _scene.RemotePeers.FirstOrDefault(p => p.Id == ship.player.Id);
+            if (peer != null)
+            {
+                _scene.GetComponent<ILogger>().Info("logic.respawn", "Sending respawn position to {0}", peer.Id);
+                _scene.Send(new MatchPeerFilter(peer), "ship.forcePositionUpdate", (s) =>
+                {
+                    using (var writer = new BinaryWriter(s, Encoding.UTF8, true))
+                    {
+                        writer.Write(ship.id);
+                        writer.Write(ship.x);
+                        writer.Write(ship.y);
+                        writer.Write(ship.rot);
+                        writer.Write(ship.PositionUpdatedOn);
+                    }
+                }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+            }
+            
             ship.ChangePv(ship.maxPv - ship.currentPv);
         }
 
@@ -343,7 +381,7 @@ namespace Server
                     List<long> _;
                     _boidsTimes.TryRemove(player.ShipId, out _);
                     _scene.GetComponent<ILogger>().Info("gameScene", "removed ship");
-                    _scene.Broadcast("ship.remove", s => arg.Peer.Serializer().Serialize(ship.id, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                    _scene.Broadcast("ship.remove", ship.id, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
                 }
             }
         }
@@ -360,29 +398,23 @@ namespace Server
             if (!player.IsObserver)
             {
                 ship = CreateShip(player);
-
+                player.ShipId = ship.id;
                 _ships.AddOrUpdate(ship.id, ship, (id, old) => ship);
 
-                var dto = new ShipCreatedDto { id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status };
+                var dto = new ShipCreatedDto { timestamp = _scene.GetComponent<IEnvironment>().Clock, id = ship.id, team = ship.team, x = ship.x, y = ship.y, rot = ship.rot, weapons = ship.weapons, status = ship.Status };
                 var data = new[] { dto };
 
                 client.Send("ship.me", s => client.Serializer().Serialize(data, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
 
-                var peersBySerializer = _scene.RemotePeers.ToLookup(peer => peer.Serializer().Name);
-                foreach (var group in peersBySerializer)
-                {
-                    _scene.Send(new MatchArrayFilter(group), "ship.add", s =>
-                        {
-                            group.First().Serializer().Serialize(data, s);
-                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-                }
+                _scene.Broadcast("ship.add", data, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+
             }
 
             // Send ships to new client
             var shipsToSend = new List<ShipCreatedDto>();
             foreach (var s in _ships.Values.ToArray())
             {
-                var dto = new ShipCreatedDto { id = s.id, team = s.team, x = s.x, y = s.y, rot = s.rot, weapons = s.weapons, status = s.Status };
+                var dto = new ShipCreatedDto { timestamp = _scene.GetComponent<IEnvironment>().Clock, id = s.id, team = s.team, x = s.x, y = s.y, rot = s.rot, weapons = s.weapons, status = s.Status };
                 if (ship == null || ship.id != s.id)
                 {
                     shipsToSend.Add(dto);
@@ -432,9 +464,9 @@ namespace Server
                 rot = (float)(_rand.NextDouble() * 2 * Math.PI),
                 x = X_MIN + (float)(_rand.NextDouble() * (X_MAX - X_MIN)),
                 y = Y_MIN + (float)(_rand.NextDouble() * (Y_MAX - Y_MIN)),
-                currentPv = 50,
-                maxPv = 50,
-                weapons = new Weapon[] { new Weapon { id = "canon", damage = 10, precision = 0.4f, coolDown = 1500, range = 200 }/*, new Weapon { id = "missile", damage = 40, precision = 0.6f, coolDown = 3 }*/ }
+                currentPv = 15,
+                maxPv = 15,
+                weapons = new Weapon[] { new Weapon { id = "canon", damage = 10, precision = 0.6f, coolDown = 1500, range = 200 }/*, new Weapon { id = "missile", damage = 40, precision = 0.6f, coolDown = 3 }*/ }
             };
             return ship;
         }
@@ -448,10 +480,11 @@ namespace Server
             scene.Broadcast("ship.statusChanged", new StatusChangedMsg { shipId = shipId, status = status });
         }
 
-        public static void BroadcastUsedSkill(this ISceneHost scene, ushort shipId, ushort target, bool success, string weaponId)
+        public static void BroadcastUsedSkill(this ISceneHost scene, ushort shipId, ushort target, bool success, string weaponId, long timestamp)
         {
-            scene.Broadcast("ship.usedSkill", new UsedSkillMsg { shipId = target, origin = shipId, success = success, weaponId = weaponId });
+            scene.Broadcast("ship.usedSkill", new UsedSkillMsg { shipId = target, origin = shipId, success = success, weaponId = weaponId, timestamp = timestamp });
         }
+
 
         public static void BroadcastPvUpdate(this ISceneHost scene, ushort shipId, int diff)
         {

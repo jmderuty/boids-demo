@@ -10,7 +10,7 @@ namespace Server.Leaderboards
     class LeaderboardsService : ILeaderboardsService
     {
         private IESClientFactory _factory;
-        private string index = "boids";
+        private string index = Constants.INDEX;
         public LeaderboardsService(IESClientFactory esFactory)
         {
             _factory = esFactory;

@@ -40,13 +40,13 @@ namespace Server.Leaderboards
             {
                 h.DependencyResolver.Register<ILeaderboardsService, LeaderboardsService>();
 
-                _apis.Get[""] =  _ =>
+                _apis.Get["/"] =  _ =>
                     {
                         var service = h.DependencyResolver.Resolve<ILeaderboardsService>();
                         return service.ListLeaderboards().Result.Select(l => new LeaderboardDto { id = l.Name, name = l.Name, description = l.Description });
                     };
 
-                _apis.Get["{id:string}/{skip:int}/{take:int}"] = parameters =>
+                _apis.Get["/{id:string}/{skip:int}/{take:int}"] = parameters =>
                     {
                         var service = h.DependencyResolver.Resolve<ILeaderboardsService>();
                         var id = (string)parameters.id;

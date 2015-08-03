@@ -25,7 +25,8 @@ namespace Server
     {
         internal static PlayerInfos FromPeer(IScenePeerClient peer)
         {
-            return peer.Serializer().Deserialize<PlayerInfos>(new MemoryStream(peer.UserData));
+            return peer.GetUserData<PlayerInfos>();
+          //  return peer.Serializer().Deserialize<PlayerInfos>(new MemoryStream(peer.UserData));
         }
         public bool isObserver;
 

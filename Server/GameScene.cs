@@ -35,6 +35,7 @@ namespace Server
         private ushort _currentId = 0;
         private ConcurrentDictionary<long, Player> _players = new ConcurrentDictionary<long, Player>();
         private ConcurrentDictionary<ushort, Ship> _ships = new ConcurrentDictionary<ushort, Ship>();
+        private ConcurrentQueue<UsedSkillMsg> _skills = new ConcurrentQueue<UsedSkillMsg>();
 
         private bool isRunning = false;
 
@@ -138,12 +139,18 @@ namespace Server
                     target.ChangePv(-weapon.damage);
                 }
             }
-            _scene.BroadcastUsedSkill(ship.id, target.id, success, weapon.id, timestamp);
 
+            this.RegisterSkill(ship.id, target.id, success, weapon.id, timestamp);
 
             arg.SendValue(new UseSkillResponse { error = false, errorMsg = null, skillUpTimestamp = weapon.fireTimestamp + weapon.coolDown, success = success });
             return true;
         }
+
+        private void RegisterSkill(ushort originId, ushort targetId, bool success, string weaponId, long timestamp)
+        {
+            this._skills.Enqueue(new UsedSkillMsg { origin = originId, shipId = targetId, success = success, weaponId = weaponId, timestamp = timestamp });
+        }
+
         private Task OnStarting(dynamic arg)
         {
             StartUpdateLoop();
@@ -160,6 +167,16 @@ namespace Server
         }
 
         private IDisposable _periodicUpdateTask;
+
+        private IEnumerable<UsedSkillMsg> GetUsedSkills()
+        {
+            UsedSkillMsg result;
+            while (this._skills.TryDequeue(out result))
+            {
+                yield return result;
+            }
+        }
+
         private void RunUpdate()
         {
             var env = _scene.GetComponent<IEnvironment>();
@@ -195,8 +212,11 @@ namespace Server
                                         //nb++;
                                     }
                                 }
+
                                 //metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
                             }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+
+                            _scene.BrodcastUsedSkill(this.GetUsedSkills());
                         }
                         //else
                         //{
@@ -241,7 +261,7 @@ namespace Server
 
                 if (ship.Status == ShipStatus.Dead && ship.lastStatusUpdate + 2000 < clock)
                 {
-                     ReviveShip(ship);
+                    ReviveShip(ship);
                 }
             }
         }
@@ -270,7 +290,7 @@ namespace Server
                     }
                 }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
             }
-            
+
             ship.ChangePv(ship.maxPv - ship.currentPv);
         }
 
@@ -480,9 +500,14 @@ namespace Server
             scene.Broadcast("ship.statusChanged", new StatusChangedMsg { shipId = shipId, status = status });
         }
 
-        public static void BroadcastUsedSkill(this ISceneHost scene, ushort shipId, ushort target, bool success, string weaponId, long timestamp)
+        //public static void BroadcastUsedSkill(this ISceneHost scene, ushort shipId, ushort target, bool success, string weaponId, long timestamp)
+        //{
+        //    scene.Broadcast("ship.usedSkill", new UsedSkillMsg { shipId = target, origin = shipId, success = success, weaponId = weaponId, timestamp = timestamp });
+        //}
+
+        public static void BrodcastUsedSkill(this ISceneHost scene, IEnumerable<UsedSkillMsg> skills)
         {
-            scene.Broadcast("ship.usedSkill", new UsedSkillMsg { shipId = target, origin = shipId, success = success, weaponId = weaponId, timestamp = timestamp });
+            scene.Broadcast("ship.usedSkill", skills.ToArray());
         }
 
 

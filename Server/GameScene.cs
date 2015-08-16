@@ -64,11 +64,8 @@ namespace Server
         {
             request.SendValue(s =>
             {
-                using (var writer = new BinaryWriter(s))
-                {
-                    writer.Write(this._deathCount);
-                    writer.Write(this._scene.GetComponent<IEnvironment>().Clock);
-                }
+                s.Write(BitConverter.GetBytes(this._deathCount), 0, 8);
+                s.Write(BitConverter.GetBytes(this._scene.GetComponent<IEnvironment>().Clock), 0, 8);
             });
 
             return Task.FromResult(true);

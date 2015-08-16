@@ -54,13 +54,13 @@ namespace Server
             _scene.Disconnected.Add(OnDisconnected);
             _scene.AddRoute("position.update", OnPositionUpdate);
             _scene.AddProcedure("getShipInfos", OnGetShipInfos);
-            _scene.AddProcedure("ship.killed", OnGetShipKilled);
+            _scene.AddProcedure("ship.killCount", OnGetShipKillCount);
             _scene.AddProcedure("skill", UseSkill);
             _scene.Starting.Add(OnStarting);
             _scene.Shuttingdown.Add(OnShutdown);
         }
 
-        private Task OnGetShipKilled(RequestContext<IScenePeerClient> request)
+        private Task OnGetShipKillCount(RequestContext<IScenePeerClient> request)
         {
             request.SendValue(s =>
             {

@@ -40,6 +40,7 @@ namespace Server
         private bool isRunning = false;
 
         private long interval = 50;
+        private long _deathCount = 0L;
 
         public GameScene(ISceneHost scene)
         {
@@ -53,9 +54,24 @@ namespace Server
             _scene.Disconnected.Add(OnDisconnected);
             _scene.AddRoute("position.update", OnPositionUpdate);
             _scene.AddProcedure("getShipInfos", OnGetShipInfos);
+            _scene.AddProcedure("ship.killed", OnGetShipKilled);
             _scene.AddProcedure("skill", UseSkill);
             _scene.Starting.Add(OnStarting);
             _scene.Shuttingdown.Add(OnShutdown);
+        }
+
+        private Task OnGetShipKilled(RequestContext<IScenePeerClient> request)
+        {
+            request.SendValue(s =>
+            {
+                using (var writer = new BinaryWriter(s))
+                {
+                    writer.Write(this._deathCount);
+                    writer.Write(this._scene.GetComponent<IEnvironment>().Clock);
+                }
+            });
+
+            return Task.FromResult(true);
         }
 
         private Task OnGetShipInfos(RequestContext<IScenePeerClient> arg)
@@ -475,7 +491,7 @@ namespace Server
                 id = _currentId++;
             }
             player.ShipId = id;
-            var ship = new Ship(this._scene)
+            var ship = new Ship(this)
             {
                 Status = ShipStatus.Waiting,
                 team = id,//Deathmatch
@@ -489,6 +505,20 @@ namespace Server
                 weapons = new Weapon[] { new Weapon { id = "canon", damage = 10, precision = 0.6f, coolDown = 1500, range = 200 }/*, new Weapon { id = "missile", damage = 40, precision = 0.6f, coolDown = 3 }*/ }
             };
             return ship;
+        }
+
+        internal void BroadcastPvUpdate(ushort shipId, int diff)
+        {
+            this._scene.BroadcastPvUpdate(shipId, diff);
+        }
+
+        internal void BroadcastStatusChanged(ushort shipId, ShipStatus shipStatus)
+        {
+            if (shipStatus == ShipStatus.Dead)
+            {
+                Interlocked.Increment(ref this._deathCount);
+            }
+            this._scene.BroadcastStatusChanged(shipId, shipStatus);
         }
     }
 

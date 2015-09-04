@@ -12,30 +12,65 @@ namespace Server.Users
     class UserService : IUserService
     {
         private Database.ESClientFactory _clientFactory;
-        private string _indexName =Constants.INDEX;
+        private string _indexName = Constants.INDEX;
+        private static bool _mappingChecked = false;
+        private static AsyncLock _mappingCheckedLock = new AsyncLock();
+        private async Task CreateUserMapping()
+        {
+
+            await (await Client()).MapAsync<User>(m => m
+                .DynamicTemplates(templates => templates
+                    .Add(t => t
+                        .Name("auth")
+                        .PathMatch("auth.*")
+                        .MatchMappingType("string")
+                        .Mapping(ma => ma.String(s => s.Index(Nest.FieldIndexOption.NotAnalyzed)))
+                        )
+                    .Add(t => t
+                        .Name("data")
+                        .PathMatch("userData.*")
+                        .MatchMappingType("string")
+                        .Mapping(ma => ma.String(s => s.Index(Nest.FieldIndexOption.NotAnalyzed)))
+                        )
+                     )
+                 );
+        }
 
         public UserService(UserManagementConfig config, Database.ESClientFactory clientFactory)
         {
             _clientFactory = clientFactory;
         }
 
-       
+
         private async Task<Nest.IElasticClient> Client()
         {
-            return await _clientFactory.CreateClient(_indexName);
+            var client = await _clientFactory.CreateClient(_indexName);
+            if(!_mappingChecked)
+            {
+                using (await _mappingCheckedLock.LockAsync())
+                {
+                    if (!_mappingChecked)
+                    {
+                        _mappingChecked = true;
+                        await CreateUserMapping();
+                    }
+                }
+            }
+            return client;
         }
         public async Task<User> AddAuthentication(User user, string provider, JObject authData)
         {
             var c = await Client();
             var r = await c.GetAsync<User>(gd => gd.Id(user.Id));
             r.Source.Auth["provider"] = authData;
-            
+
             await (await Client()).IndexAsync(r.Source);
             return r.Source;
         }
 
         public async Task<User> CreateUser(string id, JObject userData)
         {
+
             var user = new User() { Id = id, UserData = userData };
 
             await (await Client()).IndexAsync(user);
@@ -50,11 +85,11 @@ namespace Server.Users
         public async Task<User> GetUser(IScenePeerClient peer)
         {
             string id;
-            if(!peer.Metadata.TryGetValue("uid",out id))
+            if (!peer.Metadata.TryGetValue("uid", out id))
             {
                 return null;
             }
-            
+
             var c = await Client();
             var r = await c.GetAsync<User>(gd => gd.Id(id));
 
@@ -66,7 +101,7 @@ namespace Server.Users
             var c = await Client();
             var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term("auth." + provider + "." + claimPath, login)));
             var h = r.Hits.FirstOrDefault();
-            if(h!= null)
+            if (h != null)
             {
                 return h.Source;
             }
@@ -84,7 +119,7 @@ namespace Server.Users
         public async Task UpdateUserData<T>(IScenePeerClient peer, T data)
         {
             var user = await GetUser(peer);
-            if(user == null)
+            if (user == null)
             {
                 throw new InvalidOperationException("User not found.");
 

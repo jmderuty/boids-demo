@@ -329,12 +329,14 @@ namespace Server
             {
                 using (var reader = new BinaryReader(packet.Stream))
                 {
+                    
                     var shipId = reader.ReadUInt16();
                     var x = reader.ReadSingle();
                     var y = reader.ReadSingle();
                     var rot = reader.ReadSingle();
                     //var timestamp = reader.ReadInt64();
                     var timestamp = _scene.GetComponent<IEnvironment>().Clock;
+                    var ls = _scene.GetComponent<Server.Leaderboards.ILeaderboardsService>();
 
                     Ship ship;
                     if (_ships.TryGetValue(shipId, out ship))
@@ -477,11 +479,13 @@ namespace Server
     {
         public static void BroadcastStatusChanged(this ISceneHost scene, ushort shipId, ShipStatus status)
         {
+            
             scene.Broadcast("ship.statusChanged", new StatusChangedMsg { shipId = shipId, status = status });
         }
 
         public static void BroadcastUsedSkill(this ISceneHost scene, ushort shipId, ushort target, bool success, string weaponId, long timestamp)
         {
+           
             scene.Broadcast("ship.usedSkill", new UsedSkillMsg { shipId = target, origin = shipId, success = success, weaponId = weaponId, timestamp = timestamp });
         }
 

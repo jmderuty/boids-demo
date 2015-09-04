@@ -6,8 +6,8 @@ namespace Server
 {
     internal class Ship
     {
-        private ISceneHost _scene;
-        public Ship(ISceneHost scene)
+        private GameScene _scene;
+        public Ship(GameScene scene)
         {
             _scene = scene;
         }
@@ -50,7 +50,6 @@ namespace Server
             {
                 Status = newStatus;
 
-                lastStatusUpdate = _scene.GetComponent<IEnvironment>().Clock;
                 _scene.BroadcastStatusChanged(this.id, this.Status);
             }
         }

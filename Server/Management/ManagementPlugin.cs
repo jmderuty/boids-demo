@@ -23,7 +23,7 @@ namespace Server.Management
         public void Build(HostPluginBuildContext ctx)
         {
             ctx.HostStarting += h => {
-                h.DependencyResolver.Register<ManagementClientAccessor, ManagementClientAccessor>();
+                h.DependencyResolver.Register<ManagementClientAccessor, ManagementClientAccessor>();                
             };
         }
 

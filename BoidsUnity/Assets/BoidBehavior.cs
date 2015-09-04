@@ -2,6 +2,8 @@
 using System.Collections;
 
 public class BoidBehavior : MonoBehaviour {
+    public Color Color { get; set; }
+    public GameObject ExplosionPrefab;
 
 	// Use this for initialization
 	void Start () {
@@ -12,8 +14,17 @@ public class BoidBehavior : MonoBehaviour {
 		GetComponent<MeshFilter> ().mesh = mesh;
 		mesh.vertices = vertices;
 		mesh.triangles = triangles;
-	
+
+        GetComponent<MeshRenderer>().material.color = this.Color;
 	}
+
+    public void Explode(bool destroyed)
+    {
+        var explosionObj = (GameObject)GameObject.Instantiate(ExplosionPrefab, this.transform.position, Quaternion.identity);
+        var explosion = explosionObj.GetComponent<Explosion>();
+        explosion.IsDestruction = destroyed;
+        explosion.Color = this.Color;
+    }
 	
 	// Update is called once per frame
 	void Update () {

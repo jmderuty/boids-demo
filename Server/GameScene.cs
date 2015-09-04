@@ -35,10 +35,12 @@ namespace Server
         private ushort _currentId = 0;
         private ConcurrentDictionary<long, Player> _players = new ConcurrentDictionary<long, Player>();
         private ConcurrentDictionary<ushort, Ship> _ships = new ConcurrentDictionary<ushort, Ship>();
+        private ConcurrentQueue<UsedSkillMsg> _skills = new ConcurrentQueue<UsedSkillMsg>();
 
         private bool isRunning = false;
 
         private long interval = 50;
+        private long _deathCount = 0L;
 
         public GameScene(ISceneHost scene)
         {
@@ -52,9 +54,21 @@ namespace Server
             _scene.Disconnected.Add(OnDisconnected);
             _scene.AddRoute("position.update", OnPositionUpdate);
             _scene.AddProcedure("getShipInfos", OnGetShipInfos);
+            _scene.AddProcedure("ship.killCount", OnGetShipKillCount);
             _scene.AddProcedure("skill", UseSkill);
             _scene.Starting.Add(OnStarting);
             _scene.Shuttingdown.Add(OnShutdown);
+        }
+
+        private Task OnGetShipKillCount(RequestContext<IScenePeerClient> request)
+        {
+            request.SendValue(s =>
+            {
+                s.Write(BitConverter.GetBytes(this._deathCount), 0, 8);
+                s.Write(BitConverter.GetBytes(this._scene.GetComponent<IEnvironment>().Clock), 0, 8);
+            });
+
+            return Task.FromResult(true);
         }
 
         private Task OnGetShipInfos(RequestContext<IScenePeerClient> arg)
@@ -138,12 +152,18 @@ namespace Server
                     target.ChangePv(-weapon.damage);
                 }
             }
-            _scene.BroadcastUsedSkill(ship.id, target.id, success, weapon.id, timestamp);
 
+            this.RegisterSkill(ship.id, target.id, success, weapon.id, timestamp);
 
             arg.SendValue(new UseSkillResponse { error = false, errorMsg = null, skillUpTimestamp = weapon.fireTimestamp + weapon.coolDown, success = success });
             return true;
         }
+
+        private void RegisterSkill(ushort originId, ushort targetId, bool success, string weaponId, long timestamp)
+        {
+            this._skills.Enqueue(new UsedSkillMsg { origin = originId, shipId = targetId, success = success, weaponId = weaponId, timestamp = timestamp });
+        }
+
         private Task OnStarting(dynamic arg)
         {
             StartUpdateLoop();
@@ -160,6 +180,16 @@ namespace Server
         }
 
         private IDisposable _periodicUpdateTask;
+
+        private IEnumerable<UsedSkillMsg> GetUsedSkills()
+        {
+            UsedSkillMsg result;
+            while (this._skills.TryDequeue(out result))
+            {
+                yield return result;
+            }
+        }
+
         private void RunUpdate()
         {
             var env = _scene.GetComponent<IEnvironment>();
@@ -195,8 +225,11 @@ namespace Server
                                         //nb++;
                                     }
                                 }
+
                                 //metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
                             }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+
+                            _scene.BrodcastUsedSkill(this.GetUsedSkills());
                         }
                         //else
                         //{
@@ -457,7 +490,7 @@ namespace Server
                 id = _currentId++;
             }
             player.ShipId = id;
-            var ship = new Ship(this._scene)
+            var ship = new Ship(this)
             {
                 Status = ShipStatus.Waiting,
                 team = id,//Deathmatch
@@ -472,6 +505,20 @@ namespace Server
             };
             return ship;
         }
+
+        internal void BroadcastPvUpdate(ushort shipId, int diff)
+        {
+            this._scene.BroadcastPvUpdate(shipId, diff);
+        }
+
+        internal void BroadcastStatusChanged(ushort shipId, ShipStatus shipStatus)
+        {
+            if (shipStatus == ShipStatus.Dead)
+            {
+                Interlocked.Increment(ref this._deathCount);
+            }
+            this._scene.BroadcastStatusChanged(shipId, shipStatus);
+        }
     }
 
 
@@ -483,10 +530,14 @@ namespace Server
             scene.Broadcast("ship.statusChanged", new StatusChangedMsg { shipId = shipId, status = status });
         }
 
-        public static void BroadcastUsedSkill(this ISceneHost scene, ushort shipId, ushort target, bool success, string weaponId, long timestamp)
+        //public static void BroadcastUsedSkill(this ISceneHost scene, ushort shipId, ushort target, bool success, string weaponId, long timestamp)
+        //{
+        //    scene.Broadcast("ship.usedSkill", new UsedSkillMsg { shipId = target, origin = shipId, success = success, weaponId = weaponId, timestamp = timestamp });
+        //}
+
+        public static void BrodcastUsedSkill(this ISceneHost scene, IEnumerable<UsedSkillMsg> skills)
         {
-           
-            scene.Broadcast("ship.usedSkill", new UsedSkillMsg { shipId = target, origin = shipId, success = success, weaponId = weaponId, timestamp = timestamp });
+            scene.Broadcast("ship.usedSkill", skills.ToArray());
         }
 
 

@@ -209,3 +209,5 @@ FakesAssemblies/
 # Visual Studio 6 workspace options file
 *.opt
 
+BoidsUnity/PC/
+BoidsUnity/boids-viewer.apk

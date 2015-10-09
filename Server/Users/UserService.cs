@@ -62,7 +62,7 @@ namespace Server.Users
         {
             var c = await Client();
             var r = await c.GetAsync<User>(gd => gd.Id(user.Id));
-            r.Source.Auth["provider"] = authData;
+            r.Source.Auth[provider] = authData;
 
             await (await Client()).IndexAsync(r.Source);
             return r.Source;
@@ -72,8 +72,9 @@ namespace Server.Users
         {
 
             var user = new User() { Id = id, UserData = userData };
+            var esClient = await Client();
+            await esClient.IndexAsync(user);
 
-            await (await Client()).IndexAsync(user);
             return user;
         }
 

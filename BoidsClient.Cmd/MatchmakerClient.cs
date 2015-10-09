@@ -8,19 +8,15 @@ namespace BoidsClient.Cmd
 {
     internal class MatchmakerClient
     {
-        private readonly Client _client;
-        private Scene _scene;
-        public MatchmakerClient(Client client)
+        private readonly Scene _scene;
+        public MatchmakerClient(Scene matchmakerScene)
         {
-            _client = client;
+            _scene = matchmakerScene;
         }
 
-        internal async Task Connect(string token)
+        internal async Task Connect()
         {
-            _scene = await _client.GetScene(token);
             await _scene.Connect();
-
-            
         }
 
         public async Task<FindMatchResult> FindMatch()

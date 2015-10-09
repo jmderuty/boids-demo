@@ -8,6 +8,7 @@ using Stormancer;
 using Newtonsoft.Json.Linq;
 using System.Security.Cryptography;
 using System.Globalization;
+using Stormancer.Plugins;
 
 namespace Server.Users
 {
@@ -22,67 +23,69 @@ namespace Server.Users
 
         public void AdjustScene(ISceneHost scene)
         {
-            scene.AddProcedure("provider.loginpassword.createAccount", async p =>
+            scene.AddProcedure("provider.loginpassword.createAccount", p => CreateAccount(p, scene));
+        }
+
+        private async Task CreateAccount(RequestContext<IScenePeerClient> p, ISceneHost scene)
+        {
+            try
             {
-                try
+                var userService = scene.GetComponent<IUserService>();
+                var rq = p.ReadObject<CreateAccountRequest>();
+
+                ValidateLoginPassword(rq.Login, rq.Password);
+
+                var user = await userService.GetUserByClaim(PROVIDER_NAME, "login", rq.Login);
+
+                if (user != null)
                 {
-                    var userService = scene.GetComponent<IUserService>();
-                    var rq = p.ReadObject<CreateAccountRequest>();
+                    throw new ClientException("An user with this login already exist.");
+                }
 
-                    ValidateLoginPassword(rq.Login, rq.Password);
-
-                    var user = await userService.GetUserByClaim(PROVIDER_NAME, "login", rq.Login);
-
-                    if (user != null)
-                    {
-                        throw new ClientException("An user with this login already exist.");
-                    }
-
-                    user = await userService.GetUser(p.RemotePeer);
-                    if (user == null)
-                    {
-                        try
-                        {
-                            var uid = PROVIDER_NAME + "-" + rq.Login;
-                            user = await userService.GetUser(uid);
-                            user = await userService.CreateUser(PROVIDER_NAME + "-" + rq.Login, JObject.Parse(rq.UserData));
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new ClientException("Couldn't create account : " + ex.Message);
-                        }
-                    }
-
-                    var salt = GenerateSaltValue();
-
+                user = await userService.GetUser(p.RemotePeer);
+                if (user == null)
+                {
                     try
                     {
-                        await userService.AddAuthentication(user, PROVIDER_NAME, JObject.FromObject(new
-                        {
-                            login = rq.Login,
-                            email = rq.Email,
-                            salt = salt,
-                            password = HashPassword(rq.Password, salt),
-                            validated = false,
-                        }));
+                        var uid = PROVIDER_NAME + "-" + rq.Login;
+                        user = await userService.CreateUser(uid, JObject.Parse(rq.UserData));
                     }
                     catch (Exception ex)
                     {
-                        throw new ClientException("Couldn't link account : " + ex.Message);
+                        throw new ClientException("Couldn't create account : " + ex.Message);
                     }
-                    p.SendValue(new AuthenticationResult
+                }
+
+                var salt = GenerateSaltValue();
+
+                try
+                {
+                    await userService.AddAuthentication(user, PROVIDER_NAME, JObject.FromObject(new
                     {
-                        Success = true
-                    });
-
-
+                        login = rq.Login,
+                        email = rq.Email,
+                        salt = salt,
+                        password = HashPassword(rq.Password, salt),
+                        validated = false,
+                    }));
                 }
                 catch (Exception ex)
                 {
-                    p.SendValue(new AuthenticationResult { ErrorMsg = ex.Message, Success = false });
+                    throw new ClientException("Couldn't link account : " + ex.Message);
                 }
-            });
+                p.SendValue(new LoginResult
+                {
+                    Success = true
+                });
+
+
+            }
+            catch (Exception ex)
+            {
+                p.SendValue(new LoginResult { ErrorMsg = ex.Message, Success = false });
+            }
         }
+
 
         private void ValidateLoginPassword(string login, string password)
         {
@@ -129,11 +132,11 @@ namespace Server.Users
             }
         }
 
-        public async Task<string> Authenticate(Dictionary<string, string> authenticationCtx, IUserService _userService)
+        public async Task<AuthenticationResult> Authenticate(Dictionary<string, string> authenticationCtx, IUserService _userService)
         {
+
             if (authenticationCtx["provider"] != PROVIDER_NAME)
             {
-
                 return null;
             }
 
@@ -141,13 +144,13 @@ namespace Server.Users
             var password = authenticationCtx["password"];
             if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(password))
             {
-                throw new ClientException("Login and password must be non empty.");
+                return AuthenticationResult.CreateFailure("Login and password must be non empty.", PROVIDER_NAME, authenticationCtx);
             }
 
             var user = await _userService.GetUserByClaim(PROVIDER_NAME, "login", login);
             if (user == null)
             {
-                throw new ClientException("No user found that matches the provided login/password.");
+                return AuthenticationResult.CreateFailure("No user found that matches the provided login/password.", PROVIDER_NAME, authenticationCtx);
             }
 
             dynamic authData = user.Auth[PROVIDER_NAME];
@@ -158,9 +161,9 @@ namespace Server.Users
             var candidateHash = HashPassword(password, salt);
             if (hash != candidateHash)
             {
-                throw new ClientException("No user found that matches the provider login/password.");
+                return AuthenticationResult.CreateFailure("No user found that matches the provided login/password.", PROVIDER_NAME, authenticationCtx);
             }
-            return user.Id;
+            return AuthenticationResult.CreateSuccess(user, PROVIDER_NAME, authenticationCtx);
         }
 
 

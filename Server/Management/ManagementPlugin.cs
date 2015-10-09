@@ -40,7 +40,9 @@ namespace Server.Management
         {
             var infos = await _environment.GetApplicationInfos();
 
-            return Stormancer.Management.Client.ApplicationClient.ForApi(infos.AccountId, infos.ApplicationName, infos.PrimaryKey);
+            var result = Stormancer.Management.Client.ApplicationClient.ForApi(infos.AccountId, infos.ApplicationName, infos.PrimaryKey);
+            result.Endpoint = infos.ApiEndpoint;
+            return result;
         }
     }
 }

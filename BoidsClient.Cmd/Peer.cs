@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Reactive.Linq;
 using System.Linq;
+using System.Security.Authentication;
 
 namespace BoidsClient.Cmd
 {
@@ -38,6 +39,7 @@ namespace BoidsClient.Cmd
             _sceneId = sceneId;
             _apiEndpoint = apiEndpoint;
             var config = Stormancer.ClientConfiguration.ForAccount(accountId, appName);
+            config.AddPlugin(new Stormancer.Authentication.AuthenticationPlugin());
             config.AsynchrounousDispatch = false;
             config.ServerEndpoint = apiEndpoint;
             _client = new Client(config);
@@ -47,16 +49,35 @@ namespace BoidsClient.Cmd
         public async Task Start()
         {
             IsRunning = true;
-            var authenticator = new AuthenticatorClient();
-            var result =  await authenticator.Authenticate(_client);
-            
-            if (!result.Success)
+
+
+            var login = UserGenerator.Instance.GetLoginPassword();
+
+            Scene matchMakerScene;
+            try
             {
-                Console.WriteLine("Authentication failed : " + authenticator.Result.ErrorMsg);
+                try
+                {
+                    matchMakerScene = await _client.Authenticator().Login(login.Item1, login.Item2);
+                }
+                catch (InvalidCredentialException)
+                {
+                    await _client.Authenticator().CreateLoginPasswordAccount(login.Item1, login.Item2, login.Item1 + "@elves.net", new object());
+
+                    // we wait for the account to become active
+                    await Task.Delay(10);
+
+                    matchMakerScene = await _client.Authenticator().Login(login.Item1, login.Item2);
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("Authentication failed : " + ex.Message);
                 return;
             }
-            var matchmaker = new MatchmakerClient(_client);
-            await matchmaker.Connect(result.Token);
+
+            var matchmaker = new MatchmakerClient(matchMakerScene);
+            await matchmaker.Connect();
             while (IsRunning)
             {
                 var match = await matchmaker.FindMatch();
@@ -83,6 +104,11 @@ namespace BoidsClient.Cmd
 
         private class Logger : ILogger
         {
+            public void Log(LogLevel level, string category, string message, Exception ex)
+            {
+                Console.WriteLine(message + ex);
+            }
+
             public void Log(LogLevel level, string category, string message, object data)
             {
                 Console.WriteLine(message);

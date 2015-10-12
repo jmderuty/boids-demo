@@ -58,7 +58,7 @@ namespace Server.Users
                     {
                         result.Success = true;
                         var client = await accessor.GetApplicationClient();
-                        result.Token = await client.CreateConnectionToken(_config.OnRedirect(authResult), authResult.AuthenticatedUser);
+                        result.Token = await client.CreateConnectionToken(_config.OnRedirect(authResult), _config.UserDataSelector(authResult));
                         userService.SetUid(p.RemotePeer, authResult.AuthenticatedId);
                         break;
                     }

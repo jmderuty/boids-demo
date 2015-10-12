@@ -12,6 +12,7 @@ namespace Server.Users
         public UserManagementConfig()
         {
             AuthenticationProviders = new List<IAuthenticationProvider>();
+            UserDataSelector = DefaultUserDataSelector;
         }
 
         public List<IAuthenticationProvider> AuthenticationProviders { get; private set; }
@@ -30,5 +31,12 @@ namespace Server.Users
                 _sceneIdRedirectFactory = value;
             }
         }
+
+        private User DefaultUserDataSelector(AuthenticationResult r)
+        {
+            return r.AuthenticatedUser;
+        }
+
+        public Func<AuthenticationResult, object> UserDataSelector { get; set; }
     }
 }

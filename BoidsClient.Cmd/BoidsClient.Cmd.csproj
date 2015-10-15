@@ -95,6 +95,8 @@
     <Compile Include="IHandler.cs" />
     <Compile Include="MatchmakerClient.cs" />
     <Compile Include="MetricsRepository.cs" />
+    <Compile Include="Models\CreateAccountRequest.cs" />
+    <Compile Include="Models\LoginResult.cs" />
     <Compile Include="Peer.cs" />
     <Compile Include="PeerFactory.cs" />
     <Compile Include="PeerManager.cs" />

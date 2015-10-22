@@ -77,7 +77,7 @@ namespace Server.Users
                 }
                 catch (Exception ex)
                 {
-                    scene.GetComponent<ILogger>().Log(LogLevel.Trace, "user.provider.loginpassword", "Couldn't link account" + rq.Login + ".", ex);
+                    scene.GetComponent<ILogger>().Log(LogLevel.Trace, "user.provider.loginpassword", "Couldn't link account " + rq.Login + ".", ex);
 
                     throw new ClientException("Couldn't link account : " + ex.Message);
                 }

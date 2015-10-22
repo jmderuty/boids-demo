@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using System.Security.Cryptography;
 using System.Globalization;
 using Stormancer.Plugins;
+using Stormancer.Diagnostics;
 
 namespace Server.Users
 {
@@ -33,12 +34,15 @@ namespace Server.Users
                 var userService = scene.GetComponent<IUserService>();
                 var rq = p.ReadObject<CreateAccountRequest>();
 
+                scene.GetComponent<ILogger>().Log(LogLevel.Trace, "user.provider.loginpassword", "Creating user " + rq.Login + ".", rq.Login);
                 ValidateLoginPassword(rq.Login, rq.Password);
 
                 var user = await userService.GetUserByClaim(PROVIDER_NAME, "login", rq.Login);
 
                 if (user != null)
                 {
+                    scene.GetComponent<ILogger>().Log(LogLevel.Trace, "user.provider.loginpassword", "User with login " + rq.Login + " already exists.", rq.Login);
+
                     throw new ClientException("An user with this login already exist.");
                 }
 
@@ -52,6 +56,8 @@ namespace Server.Users
                     }
                     catch (Exception ex)
                     {
+                        scene.GetComponent<ILogger>().Log(LogLevel.Trace, "user.provider.loginpassword", "Couldn't create user " + rq.Login + ".", ex);
+
                         throw new ClientException("Couldn't create account : " + ex.Message);
                     }
                 }
@@ -71,8 +77,12 @@ namespace Server.Users
                 }
                 catch (Exception ex)
                 {
+                    scene.GetComponent<ILogger>().Log(LogLevel.Trace, "user.provider.loginpassword", "Couldn't link account" + rq.Login + ".", ex);
+
                     throw new ClientException("Couldn't link account : " + ex.Message);
                 }
+
+                scene.GetComponent<ILogger>().Log(LogLevel.Trace, "user.provider.loginpassword", "Creating user " + rq.Login + ".", rq.Login);
                 p.SendValue(new LoginResult
                 {
                     Success = true

@@ -110,9 +110,7 @@ namespace Stormancer.Authentication
                 Password = password,
                 Email = email,
                 UserData = JsonConvert.SerializeObject(userData)
-            };
-
-           
+            };         
 
 
 

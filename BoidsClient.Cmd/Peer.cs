@@ -65,7 +65,7 @@ namespace BoidsClient.Cmd
                     await _client.Authenticator().CreateLoginPasswordAccount(login.Item1, login.Item2, login.Item1 + "@elves.net", new object());
 
                     // we wait for the account to become active
-                    await Task.Delay(10);
+                    await Task.Delay(TimeSpan.FromSeconds(10));
 
                     matchMakerScene = await _client.Authenticator().Login(login.Item1, login.Item2);
                 }

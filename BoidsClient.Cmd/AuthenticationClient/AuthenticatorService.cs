@@ -112,12 +112,34 @@ namespace Stormancer.Authentication
                 UserData = JsonConvert.SerializeObject(userData)
             };
 
+           
+
+
+
             var createAccountResult = await scene.RpcTask<CreateAccountRequest, LoginResult>(CreateUserRoute, createAccountRequest);
 
             if (!createAccountResult.Success)
             {
                 throw new InvalidOperationException(createAccountResult.ErrorMsg);
             }
+
+            //var tcs = new TaskCompletionSource<bool>();
+
+            //var createAccountObservable = scene.Rpc(CreateUserRoute, s => scene.Host.Serializer().Serialize(createAccountRequest, s));
+
+            //createAccountObservable.Subscribe(packet =>
+            //{
+            //    Console.WriteLine("packet received!");
+            //},exception =>
+            //{
+            //    Console.WriteLine("An exception occured!");
+            //}
+            //,()=>
+            //{
+            //    Console.WriteLine("Create account finished!");
+            //});
+
+            //await tcs.Task;
         }
 
         private void EnsureAuthenticatorSceneExists()

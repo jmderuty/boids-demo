@@ -23,6 +23,7 @@ namespace BoidsClient.Cmd
         {
             _enumerator = GetLoginPasswordEnum().GetEnumerator();
         }
+
         public Tuple<string, string> GetLoginPassword()
         {
             if (_enumerator.MoveNext())

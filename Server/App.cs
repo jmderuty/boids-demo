@@ -25,6 +25,7 @@ namespace Server
             };
 
             userConfig.AuthenticationProviders.Add(new LoginPasswordAuthenticationProvider());
+            userConfig.AuthenticationProviders.Add(new ViewerAuthenticationProvider());
             builder.AddPlugin(new UsersManagementPlugin(userConfig));
 
             var admintest = builder.AdminPlugin("admintest", Stormancer.Server.Admin.AdminPluginHostVersion.V0_1).Name("admintest");

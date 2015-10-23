@@ -125,6 +125,7 @@
     <Compile Include="Users\UserManagementConfig.cs" />
     <Compile Include="Users\UserService.cs" />
     <Compile Include="Users\UsersManagementPlugin.cs" />
+    <Compile Include="Users\ViewerAuthenticationProvider.cs" />
     <Compile Include="Weapon.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -32,9 +32,9 @@ namespace Server.Matchmaking
                 scene.AddProcedure("match.find",async ctx => {
                     var managementClientFactory = scene.DependencyResolver.Resolve<Management.ManagementClientAccessor>();
                     var client = await managementClientFactory.GetApplicationClient();
-                    var userId = ctx.RemotePeer.GetUserData<string>();
-                    var isPlayer = ctx.ReadObject<bool>();
-                    var token = await client.CreateConnectionToken(Constants.GAME_NAME, new PlayerInfos { isObserver = !isPlayer, userId = userId });
+                    var playersInfo = ctx.RemotePeer.GetUserData<PlayerInfos>();
+                    //  var isPlayer = ctx.ReadObject<bool>();
+                    var token = await client.CreateConnectionToken(Constants.GAME_NAME, playersInfo);
 
                     ctx.SendValue(new FindMatchResult { Token = token });
                 });

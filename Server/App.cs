@@ -17,8 +17,13 @@ namespace Server
             var userConfig = new Users.UserManagementConfig()
             {
                 SceneIdRedirect = Constants.MATCHMAKER_NAME,
-                UserDataSelector = r => r.AuthenticatedUser.Id
+                UserDataSelector = r => new PlayerInfos
+                {
+                    isObserver = r.Provider == ViewerAuthenticationProvider.PROVIDER_NAME,
+                    userId = r.AuthenticatedUser.Id
+                }
             };
+
             userConfig.AuthenticationProviders.Add(new LoginPasswordAuthenticationProvider());
             builder.AddPlugin(new UsersManagementPlugin(userConfig));
 

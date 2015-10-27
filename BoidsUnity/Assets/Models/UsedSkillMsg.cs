@@ -7,7 +7,7 @@ namespace Models
 {
     public class UsedSkillMsg
     {
-        public ushort shipId { get; set; }
+        public ushort shipId;
 
         public bool success { get; set; }
 
@@ -15,6 +15,6 @@ namespace Models
 
         public string weaponId { get; set; }
 
-        public long timestamp { get; set;}
+        public long timestamp { get; set; }
     }
 }

@@ -259,7 +259,7 @@ namespace Stormancer
             return this._client.ConnectToScene(this, this._token, this._localRoutesMap.Values)
                 .Then(() =>
                 {
-                    resolver.GetComponent<ILogger>().Error("Successfully connected to scene : '{0}'.", Id);
+                    resolver.GetComponent<ILogger>().Info("Successfully connected to scene : '{0}'.", Id);
                     this.Connected = true;
                 });
         }

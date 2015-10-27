@@ -34,15 +34,13 @@ public class GameEngine : MonoBehaviour
         var config = Stormancer.ClientConfiguration.ForAccount(accountId, applicationName);
         config.Logger = DebugLogger.Instance;
         this._client = new Stormancer.Client(config);
+        
 
-
-        Debug.Log("calling GetPublicScene");
         _client.Authenticator().LoginAsViewer().ContinueWith(
             task =>
             {
                 if (!task.IsFaulted)
                 {
-                    Debug.Log("test1");
                     var MatchMakerScene = task.Result;
                     var matchmaker = new MatchmakerClient(MatchMakerScene);
                     matchmaker.Connect().Then(s =>
@@ -234,7 +232,6 @@ public class GameEngine : MonoBehaviour
 
     private void OnPositionUpdate(Packet<IScenePeer> packet)
     {
-        UnityEngine.Debug.Log("pos update");
         using (var reader = new BinaryReader(packet.Stream))
         {
             while (reader.BaseStream.Position < reader.BaseStream.Length)

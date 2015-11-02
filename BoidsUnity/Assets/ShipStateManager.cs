@@ -21,6 +21,7 @@ public class ShipStateManager
     private bool _shouldRender = false;
     private bool _shouldRemove = false;
     private bool _shouldComputeTarget = false;
+    private bool _shouldExplode = false;
 
     private readonly List<UsedSkillMsg> _skillsLaunched = new List<UsedSkillMsg>();
 
@@ -98,7 +99,7 @@ public class ShipStateManager
                 var nextPosition = this._history.TakeWhile(e =>
                 {
                     var statusChanged = e as StatusEvent;
-                    return (statusChanged == null) || statusChanged.NewStatus != ShipStatus.InGame;
+                    return (statusChanged == null) || statusChanged.NewStatus == ShipStatus.InGame;
                 }).OfType<UpdatePositionEvent>().FirstOrDefault();
 
                 if (nextPosition != null)
@@ -118,10 +119,9 @@ public class ShipStateManager
 
         }
 
-        ShipRenderingInfos result;
+        ShipRenderingInfos result = new ShipRenderingInfos();
         if (this._shouldRender && this._hasPosition)
         {
-            result = new ShipRenderingInfos();
             result.Position = this.ComputePosition(timeStamp);
             result.Rotation = this.ComputeRotation(timeStamp);
             result.Team = this._team;
@@ -129,10 +129,13 @@ public class ShipStateManager
         }
         else
         {
-            result = new ShipRenderingInfos
-            {
-                Kind = this._shouldRemove ? ShipRenderingInfos.RenderingKind.RemoveShip : ShipRenderingInfos.RenderingKind.HideShipe
-            };
+            result.Kind = this._shouldRemove ? ShipRenderingInfos.RenderingKind.RemoveShip : ShipRenderingInfos.RenderingKind.HideShipe;
+        }
+
+        if (this._shouldExplode)
+        {
+            result.Kind = result.Kind | ShipRenderingInfos.RenderingKind.Explode;
+            this._shouldExplode = false;
         }
 
         result.Skills = this._skillsLaunched.ToList();
@@ -202,6 +205,7 @@ public class ShipStateManager
                     break;
                 default:
                     state._shouldRender = false;
+                    state._shouldExplode = true;
                     break;
             }
         }

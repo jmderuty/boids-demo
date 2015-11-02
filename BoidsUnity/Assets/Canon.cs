@@ -17,10 +17,17 @@ public class Canon : MonoBehaviour
         this._lineRenderer.useWorldSpace = true;
     }
 
-    public void Shoot(Transform target)
+    public void Shoot(Transform target, bool hit)
     {
         this._lineRenderer.SetPosition(0, this.transform.position);
-        this._lineRenderer.SetPosition(1, target.position);
+        if (hit)
+        {
+            this._lineRenderer.SetPosition(1, target.position);
+        }
+        else
+        {
+            this._lineRenderer.SetPosition(1, target.position  + Vector3.Normalize(target.position - this.transform.position)*1000);
+        }
         this._lineRenderer.enabled = true;
 
         var color = this._lineRenderer.material.color;

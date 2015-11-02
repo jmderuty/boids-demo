@@ -173,7 +173,6 @@ namespace BoidsClient.Cmd
 
         private void OnPositionUpdate(Packet<IScenePeer> obj)
         {
-            Console.WriteLine("PositionUpdate!");
             if (!_isReady)
             {
                 return;

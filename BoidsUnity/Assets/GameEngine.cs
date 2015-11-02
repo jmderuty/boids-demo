@@ -34,7 +34,7 @@ public class GameEngine : MonoBehaviour
         var config = Stormancer.ClientConfiguration.ForAccount(accountId, applicationName);
         config.Logger = DebugLogger.Instance;
         this._client = new Stormancer.Client(config);
-        
+
 
         _client.Authenticator().LoginAsViewer().ContinueWith(
             task =>
@@ -118,7 +118,10 @@ public class GameEngine : MonoBehaviour
         // Do nothing, we don't display ship's HP
     }
 
-
+    private bool ContainsFlag(ShipRenderingInfos.RenderingKind value, ShipRenderingInfos.RenderingKind flag)
+    {
+        return (value & flag) == flag;
+    }
 
     // Update is called once per frame
     void Update()
@@ -131,34 +134,41 @@ public class GameEngine : MonoBehaviour
             var ship = kvp.Value;
             var renderingInfos = ship.GetRenderingInfos(this._client.Clock - Delay);
 
-            switch (renderingInfos.Kind)
+            if (ContainsFlag(renderingInfos.Kind, ShipRenderingInfos.RenderingKind.RemoveShip))
             {
-                case ShipRenderingInfos.RenderingKind.RemoveShip:
-                    deleteArray.Add(key);
-                    break;
-                case ShipRenderingInfos.RenderingKind.AddShip:
-                    var obj = (GameObject)Instantiate(ShipPrefab, renderingInfos.Position, renderingInfos.Rotation);
+                deleteArray.Add(key);
+            }
+            if (ContainsFlag(renderingInfos.Kind, ShipRenderingInfos.RenderingKind.AddShip))
+            {
+                var obj = (GameObject)Instantiate(ShipPrefab, renderingInfos.Position, renderingInfos.Rotation);
 
-                    var color = renderingInfos.Team % 2 == 0 ? this.EvenTeamColor : this.OddTeamColor;
-                    obj.GetComponent<BoidBehavior>().Color = color;
+                var color = renderingInfos.Team % 2 == 0 ? this.EvenTeamColor : this.OddTeamColor;
+                obj.GetComponent<BoidBehavior>().Color = color;
 
-                    ship.Obj = obj;
-                    break;
-                case ShipRenderingInfos.RenderingKind.DrawShip:
-                    if (ship.Obj != null)
-                    {
-                        ship.Obj.GetComponent<Renderer>().enabled = true;
-                        ship.Obj.transform.position = renderingInfos.Position;
-                        ship.Obj.transform.rotation = renderingInfos.Rotation;
-                    }
-                    break;
-                case ShipRenderingInfos.RenderingKind.HideShipe:
-                    if (ship.Obj != null)
-                    {
-                        ship.Obj.GetComponent<Renderer>().enabled = false;
-                        ship.Obj.GetComponent<BoidBehavior>().Explode(true);
-                    }
-                    break;
+                ship.Obj = obj;
+            }
+            if (ContainsFlag(renderingInfos.Kind, ShipRenderingInfos.RenderingKind.DrawShip))
+            {
+                if (ship.Obj != null)
+                {
+                    ship.Obj.GetComponent<Renderer>().enabled = true;
+                    ship.Obj.transform.position = renderingInfos.Position;
+                    ship.Obj.transform.rotation = renderingInfos.Rotation;
+                }
+            }
+            if (ContainsFlag(renderingInfos.Kind, ShipRenderingInfos.RenderingKind.HideShipe))
+            {
+                if (ship.Obj != null)
+                {
+                    ship.Obj.GetComponent<Renderer>().enabled = false;
+                }
+            }
+            if (ContainsFlag(renderingInfos.Kind, ShipRenderingInfos.RenderingKind.Explode))
+            {
+                if (ship.Obj != null)
+                {
+                    ship.Obj.GetComponent<BoidBehavior>().Explode(true);
+                }
             }
 
             foreach (var skill in renderingInfos.Skills)
@@ -170,7 +180,7 @@ public class GameEngine : MonoBehaviour
                         ShipStateManager targetShip;
                         if (this._gameObjects.TryGetValue(skill.shipId, out targetShip) && targetShip.Obj != null)
                         {
-                            ship.Obj.GetComponentInChildren<Canon>().Shoot(targetShip.Obj.transform);
+                            ship.Obj.GetComponentInChildren<Canon>().Shoot(targetShip.Obj.transform, skill.success);
 
                             if (skill.success)
                             {

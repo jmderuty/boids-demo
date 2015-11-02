@@ -107,8 +107,6 @@
     <Compile Include="Leaderboards\LeaderBoardPlugin.cs" />
     <Compile Include="Management\ManagementPlugin.cs" />
     <Compile Include="Matchmaking\FindMatchResult.cs" />
-    <Compile Include="Matchmaking\MatchmakingBuilder.cs" />
-    <Compile Include="Matchmaking\MatchMakingExtensions.cs" />
     <Compile Include="Matchmaking\MatchmakingPlugin.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="ShipCreatedDto.cs" />

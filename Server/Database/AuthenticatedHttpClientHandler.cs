@@ -21,6 +21,7 @@ namespace Server.Database
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
         {
             request.Headers.Add("x-token", GenerateToken());
+            request.Headers.Add("x-version", "1.0.0");
             return base.SendAsync(request, cancellationToken);
         }
 

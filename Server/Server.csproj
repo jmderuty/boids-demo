@@ -58,15 +58,18 @@
     <Reference Include="Owin">
       <HintPath>..\packages\Owin.1.0\lib\net40\Owin.dll</HintPath>
     </Reference>
-    <Reference Include="Stormancer.Core">
-      <HintPath>..\packages\Stormancer.Server.1.3.3.0\lib\Net45\Stormancer.Core.dll</HintPath>
+    <Reference Include="Stormancer.Core, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Stormancer.Core.1.1.0.0\lib\net45\Stormancer.Core.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="Stormancer.Management.Client, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="Stormancer.Management.Client, Version=1.2.1.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Stormancer.Management.Client.1.2.0.0\lib\net45\Stormancer.Management.Client.dll</HintPath>
+      <HintPath>..\packages\Stormancer.Management.Client.1.2.1.0\lib\net45\Stormancer.Management.Client.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="Stormancer.Server">
-      <HintPath>..\packages\Stormancer.Server.1.3.3.0\lib\Net45\Stormancer.Server.dll</HintPath>
+    <Reference Include="Stormancer.Server, Version=1.3.6.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Stormancer.Server.1.3.6.0\lib\net45\Stormancer.Server.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -104,8 +107,6 @@
     <Compile Include="Leaderboards\LeaderBoardPlugin.cs" />
     <Compile Include="Management\ManagementPlugin.cs" />
     <Compile Include="Matchmaking\FindMatchResult.cs" />
-    <Compile Include="Matchmaking\MatchmakingBuilder.cs" />
-    <Compile Include="Matchmaking\MatchMakingExtensions.cs" />
     <Compile Include="Matchmaking\MatchmakingPlugin.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="ShipCreatedDto.cs" />
@@ -114,6 +115,7 @@
     <Compile Include="ShipDamageMsg.cs" />
     <Compile Include="StatusChangedMsg.cs" />
     <Compile Include="UserSkillRequest.cs" />
+    <Compile Include="Users\AuthenticatorResult.cs" />
     <Compile Include="Users\IAuthenticationProvider.cs" />
     <Compile Include="Users\IUserService.cs" />
     <Compile Include="Users\LoginPasswordAuthenticationProvider.cs" />
@@ -121,6 +123,7 @@
     <Compile Include="Users\UserManagementConfig.cs" />
     <Compile Include="Users\UserService.cs" />
     <Compile Include="Users\UsersManagementPlugin.cs" />
+    <Compile Include="Users\ViewerAuthenticationProvider.cs" />
     <Compile Include="Weapon.cs" />
   </ItemGroup>
   <ItemGroup>

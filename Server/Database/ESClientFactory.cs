@@ -60,10 +60,9 @@ namespace Server.Database
                     }
                 }
             }
-           
 
+            var endpoint = (await _environment.GetApplicationInfos()).ApiEndpoint;
             var index = _indices.FirstOrDefault(i => i.name == indexName);
-            var endpoint = "https://api.stormancer.com";
             var connection = new Elasticsearch.Net.Connection.HttpClientConnection(
                  new ConnectionSettings(),
                  new AuthenticatedHttpClientHandler(index));

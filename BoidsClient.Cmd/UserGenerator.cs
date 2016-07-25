@@ -8,7 +8,7 @@ namespace BoidsClient.Cmd
 {
     public class UserGenerator
     {
-       
+
         private static UserGenerator _instance = new UserGenerator();
         private IEnumerator<Tuple<string, string>> _enumerator;
         public static UserGenerator Instance
@@ -23,9 +23,10 @@ namespace BoidsClient.Cmd
         {
             _enumerator = GetLoginPasswordEnum().GetEnumerator();
         }
-        public Tuple<string,string> GetLoginPassword()
+
+        public Tuple<string, string> GetLoginPassword()
         {
-            if(_enumerator.MoveNext())
+            if (_enumerator.MoveNext())
             {
                 return _enumerator.Current;
             }
@@ -34,24 +35,28 @@ namespace BoidsClient.Cmd
                 throw new InvalidOperationException("Login repository depleted.");
             }
 
-            
+
         }
 
-        private string[] syllabs = new[] { "mi","lil","lae","shyn","cli","re","lonna","mae","ka","ya","lu","win","el","rue","tae" };
+        private string[] syllabs = new[] { "mi", "lil", "lae", "shyn", "cli", "re", "lonna", "mae", "ka", "ya", "lu", "win", "el", "rue", "tae" };
 
-        private IEnumerable<Tuple<string,string>> GetLoginPasswordEnum()
+        private IEnumerable<Tuple<string, string>> GetLoginPasswordEnum()
         {
-            
-            for(int i = 0; i< syllabs.Length;i++)
+
+            for (int i = 0; i < syllabs.Length; i++)
             {
-                for(int j = -1; j< syllabs.Length;j++)
+                for (int j = -1; j < syllabs.Length; j++)
                 {
-                    for(int k = -1; k<syllabs.Length;k++)
+                    for (int k = -1; k < syllabs.Length; k++)
                     {
                         var s1 = syllabs[i];
                         var s2 = j < 0 ? "" : syllabs[j];
                         var s3 = k < 0 ? "" : syllabs[k];
-                        yield return Tuple.Create(s1 + s2 + s3, s1 + "1-" + s2 + "356$;" + s3);
+                        if (j < 0 && k >= 0)
+                        {
+                            continue;
+                        }
+                        yield return Tuple.Create(s1 + s2 + s3, s1.ToUpperInvariant() + "1-" + s2 + "356$;" + s3);
                     }
                 }
             }

@@ -9,6 +9,12 @@ namespace Server.Users
 {
     public class User
     {
+        public User()
+        {
+            Auth = new JObject();
+            UserData = new JObject();
+        }
+
         public string Id { get; set; }
 
         public JObject Auth { get; set; }

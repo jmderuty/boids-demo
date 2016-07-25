@@ -18,12 +18,14 @@ namespace Models
 
         public List<UsedSkillMsg> Skills { get; set; }
 
+        [Flags]
         public enum RenderingKind
         {
-            AddShip,
-            DrawShip,
-            HideShipe,
-            RemoveShip
+            AddShip = 1,
+            DrawShip = 2,
+            HideShipe = 4,
+            RemoveShip = 8,
+            Explode = 16
         }
     }
 }

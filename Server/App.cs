@@ -12,10 +12,21 @@ namespace Server
     {
         public void Run(IAppBuilder builder)
         {
-            //var userConfig = new Users.UserManagementConfig() { SceneIdRedirect = Constants.MATCHMAKER_NAME };
-            //userConfig.AuthenticationProviders.Add(new LoginPasswordAuthenticationProvider());
-            //builder.AddPlugin(new UsersManagementPlugin(userConfig));
             builder.AddGameScene();
+
+            var userConfig = new Users.UserManagementConfig()
+            {
+                SceneIdRedirect = Constants.MATCHMAKER_NAME,
+                UserDataSelector = r => new PlayerInfos
+                {
+                    isObserver = r.Provider == ViewerAuthenticationProvider.PROVIDER_NAME,
+                    userId = r.AuthenticatedUser.Id
+                }
+            };
+
+            userConfig.AuthenticationProviders.Add(new LoginPasswordAuthenticationProvider());
+            userConfig.AuthenticationProviders.Add(new ViewerAuthenticationProvider());
+            builder.AddPlugin(new UsersManagementPlugin(userConfig));
 
             var admintest = builder.AdminPlugin("admintest", Stormancer.Server.Admin.AdminPluginHostVersion.V0_1).Name("admintest");
             //admintest.Get["/"] = ctx => "helloworld";

@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Reactive.Linq;
 using System.Linq;
+using System.Security.Authentication;
 
 namespace BoidsClient.Cmd
 {
@@ -38,6 +39,7 @@ namespace BoidsClient.Cmd
             _sceneId = sceneId;
             _apiEndpoint = apiEndpoint;
             var config = Stormancer.ClientConfiguration.ForAccount(accountId, appName);
+            config.AddPlugin(new Stormancer.Authentication.AuthenticationPlugin());
             config.AsynchrounousDispatch = false;
             config.ServerEndpoint = apiEndpoint;
             _client = new Client(config);
@@ -47,15 +49,36 @@ namespace BoidsClient.Cmd
         public async Task Start()
         {
             IsRunning = true;
-            var authenticator = new AuthenticatorClient();
-            var result =  await authenticator.Authenticate(_client);
-            
-            if (!result.Success)
+
+
+            var login = UserGenerator.Instance.GetLoginPassword();
+
+            Scene matchMakerScene;
+            try
             {
-                Console.WriteLine("Authentication failed : " + authenticator.Result.ErrorMsg);
+                try
+                {
+                    matchMakerScene = await _client.Authenticator().Login(login.Item1, login.Item2);
+                }
+                catch (InvalidCredentialException)
+                {
+                    Console.WriteLine($"Authentication failed : creating user {login.Item1}");
+
+                    await _client.Authenticator().CreateLoginPasswordAccount(login.Item1, login.Item2, login.Item1 + "@elves.net", new object());
+
+                    // we wait for the account to become active
+                    await Task.Delay(TimeSpan.FromSeconds(10));
+
+                    matchMakerScene = await _client.Authenticator().Login(login.Item1, login.Item2);
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Authentication failed for user {login.Item1}, {login.Item2}: " + ex.Message);
                 return;
             }
-            var token = await authenticator.GetPrivateSceneToken("main");
+
+            var token = await _client.Authenticator().GetPrivateSceneToken("main");
             var game = new GameSessionClient(_name, token);
             await game.Start(_client);
             _currentHandler = game;
@@ -66,6 +89,7 @@ namespace BoidsClient.Cmd
             //while (IsRunning)
             //{
             //    var match = await matchmaker.FindMatch();
+
 
             //    var game = new GameSessionClient(_name, match.Token);
             //    await game.Start(_client);
@@ -92,6 +116,7 @@ namespace BoidsClient.Cmd
             public void Log(LogLevel level, string category, string message, Exception ex)
             {
                 Log(level, category, message, (object)ex);
+
             }
 
             public void Log(LogLevel level, string category, string message, object data)

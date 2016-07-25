@@ -227,7 +227,7 @@ namespace Server
                                 }
 
                                 //metrics.AddOrUpdate(nb, 1, (i, old) => old + 1);
-                            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE_SEQUENCED);
+                            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE);
 
                             _scene.BrodcastUsedSkill(this.GetUsedSkills());
                         }

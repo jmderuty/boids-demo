@@ -55,22 +55,28 @@ namespace BoidsClient.Cmd
                 Console.WriteLine("Authentication failed : " + authenticator.Result.ErrorMsg);
                 return;
             }
-            var matchmaker = new MatchmakerClient(_client);
-            await matchmaker.Connect(result.Token);
-            while (IsRunning)
-            {
-                var match = await matchmaker.FindMatch();
+            var token = await authenticator.GetPrivateSceneToken("main");
+            var game = new GameSessionClient(_name, token);
+            await game.Start(_client);
+            _currentHandler = game;
+            await game.CompletedAsync();
+            game.Stop();
+            //var matchmaker = new MatchmakerClient(_client);
+            //await matchmaker.Connect(result.Token);
+            //while (IsRunning)
+            //{
+            //    var match = await matchmaker.FindMatch();
 
-                var game = new GameSessionClient(_name, match.Token);
-                await game.Start(_client);
-                _currentHandler = game;
+            //    var game = new GameSessionClient(_name, match.Token);
+            //    await game.Start(_client);
+            //    _currentHandler = game;
 
-                await game.CompletedAsync();
+            //    await game.CompletedAsync();
 
-                game.Stop();
+            //    game.Stop();
 
-            }
-            
+            //}
+
 
 
 
@@ -83,6 +89,11 @@ namespace BoidsClient.Cmd
 
         private class Logger : ILogger
         {
+            public void Log(LogLevel level, string category, string message, Exception ex)
+            {
+                Log(level, category, message, (object)ex);
+            }
+
             public void Log(LogLevel level, string category, string message, object data)
             {
                 Console.WriteLine(message);

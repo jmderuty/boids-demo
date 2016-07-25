@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Stormancer;
 using System.Reactive.Linq;
 using Newtonsoft.Json.Linq;
+using MsgPack.Serialization;
 
 namespace BoidsClient.Cmd
 {
@@ -19,6 +20,10 @@ namespace BoidsClient.Cmd
         }
 
   
+        public Task<string> GetPrivateSceneToken(string sceneId)
+        {
+            return _scene.RpcTask<string, string>("sceneauthorization.gettoken", sceneId);
+        }
 
         public async Task<AuthenticationResult> Authenticate(Client client)
         {
@@ -28,13 +33,22 @@ namespace BoidsClient.Cmd
             Result = await Login(login.Item1, login.Item2);
             if (!Result.Success)
             {
-                Console.WriteLine(Result.ErrorMsg);
+                Console.WriteLine($"Authentication failed for {login.Item1}: "+Result.ErrorMsg);
 
+                Console.WriteLine($"Creating account {login.Item1} , {login.Item2}");
                 Result = await CreateAccount(login.Item1, login.Item2);
                 if(Result.Success)
                 {
                     Result = await Login(login.Item1, login.Item2);
 
+                    if(!Result.Success)
+                    {
+                        Console.WriteLine($"Authentication failed for {login.Item1}: " + Result.ErrorMsg);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Failed creating account {login.Item1} , {Result.ErrorMsg}");
                 }
             }
             //client.Disconnect();
@@ -69,13 +83,17 @@ namespace BoidsClient.Cmd
 
     public class CreateAccountRequest
     {
+        [MessagePackMember(0)]
         public string Login { get; set; }
 
+        [MessagePackMember(1)]
         public string Password { get; set; }
 
+        [MessagePackMember(2)]
         public string Email { get; set; }
 
         //Json userdata
+        [MessagePackMember(3)]
         public string UserData { get; set; }
     }
 }
